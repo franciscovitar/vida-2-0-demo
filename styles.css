@@ -752,6 +752,12 @@ h2 { font-size: 18px; font-weight: 600; letter-spacing: -0.015em; line-height: 1
   .dlg { padding: 18px 16px calc(18px + env(safe-area-inset-bottom)); }
   .hbars li { grid-template-columns: 72px minmax(0, 1fr) 24px; }
 }
+/* Entre móvil y tablet, el encabezado se contrae antes de que los botones se solapen.
+   Registrar sigue disponible mediante el botón flotante de la barra inferior. */
+@media (min-width: 721px) and (max-width: 840px) {
+  .register-btn, .jump-kbd, .topbar .reset .hide-sm { display: none; }
+  .topbar .reset { width: 40px; padding: 0; }
+}
 
 /* ═══════════ Etapa 4 · profundidad por módulo ═══════════ */
 
