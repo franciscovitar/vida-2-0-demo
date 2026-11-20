@@ -148,9 +148,11 @@ export function parseCapture(text, ctx) {
     if (task) { intents.push(task); continue; }
     const expense = parseExpense(clause);
     if (expense) { intents.push(expense); continue; }
-    const gym = parseGymClause(clause.replace(/,/g, ' '), ctx.exercises);
+    // Las comas separan frases, salvo la coma decimal (37,5 kg).
+    const spaced = clause.replace(/(?<!\d),|,(?!\d)/g, ' ');
+    const gym = parseGymClause(spaced, ctx.exercises);
     if (gym.length) { intents.push(...gym); continue; }
-    const foods = parseFoodClause(clause.replace(/,/g, ' '), ctx.catalog, ctx.clock);
+    const foods = parseFoodClause(spaced, ctx.catalog, ctx.clock);
     if (foods.intents.length) { intents.push(...foods.intents); unparsed.push(...foods.unknown); continue; }
     unparsed.push(clause);
   }

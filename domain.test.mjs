@@ -119,6 +119,9 @@ test('el intérprete local reconoce patrones acotados y nunca adivina', () => {
   const expense = parseCapture('Gasté 12.500 en el supermercado', ctx(data)).intents[0];
   assert.deepEqual([expense.kind, expense.amount, expense.categoryId], ['finance.expense', 12500, 'food']);
   assert.equal(parseCapture('Tengo que llamar al banco', ctx(data)).intents[0].title, 'Llamar al banco');
+  const decimal = parseCapture('Hice press de pecho, 3 series de 10 con 37,5 kilos', ctx(data)).intents[0];
+  assert.deepEqual([decimal.sets, decimal.kg, decimal.reps], [3, 37.5, 10], 'la coma decimal no se trata como separador');
+  assert.equal(parseCapture('comí 1,5 tazas de arroz', ctx(data)).intents[0].amount, 1.5);
   const missing = parseCapture('hice sentadilla', ctx(data)).intents[0];
   assert.deepEqual(missing.missing, ['kg', 'reps']);
   assert.equal(validateIntent(data, missing).ok, false);
