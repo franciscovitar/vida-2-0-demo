@@ -1,5 +1,21 @@
 # Vida 2.0 — Demo pública independiente
 
+[![Calidad de Vida 2.0 Demo](https://github.com/franciscovitar/vida-2-0-demo/actions/workflows/quality.yml/badge.svg)](https://github.com/franciscovitar/vida-2-0-demo/actions/workflows/quality.yml)
+
+**[Abrir demo interactiva](https://vida-2-0-demo-genova.vercel.app/)** · **[Caso de estudio y decisiones técnicas](./docs/CASE_STUDY.md)** · [Sistema original](https://github.com/franciscovitar/vida-2.0)
+
+> Diseñada y desarrollada por **Francisco Vitar**. Un sistema para conectar organización, bienestar, aprendizaje y finanzas. La demo es pública, ficticia y no expone las integraciones privadas.
+
+**Recorrido recomendado (90 segundos):** abrí la demo, pulsá **«Recorrido guiado · 90 s»**, probá registrar un gasto, observá cómo cambia Finanzas y terminá en la explicación de la arquitectura.
+
+![Vista inicial de Vida 2.0 Demo](./docs/media/inicio-desktop.jpg)
+
+| Vista de producto | Arquitectura explicada |
+| --- | --- |
+| ![Registro y paneles de ejemplo](./docs/media/modulos-desktop.jpg) | ![Cómo funciona Vida 2.0](./docs/media/arquitectura-desktop.jpg) |
+
+*Quick English overview:* Interactive showcase of a personal information system. Fifteen connected views, synthetic data, domain calculations, local undo, and a guided walkthrough. The real Next.js/TypeScript system is documented separately; this demo has no connected accounts or AI model.
+
 Demo estática e independiente para visitantes del portfolio de Francisco Vitar. Este repositorio contiene **solo el showcase público**, separado del código y los datos de la aplicación original.
 
 **No es la aplicación personal en producción.** Es una experiencia de producto navegable y aislada, inspirada en Vida 2.0, con una persona y datos completamente ficticios. Su objetivo es que cualquier visitante entienda el concepto en pocos segundos. Es un *showcase interactivo de interfaz*, no una prueba de las integraciones privadas en vivo.

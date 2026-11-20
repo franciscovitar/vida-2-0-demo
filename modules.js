@@ -15,6 +15,7 @@ import { studyView } from './src/views/study.js';
 import { infoView } from './src/views/info.js';
 import { englishView } from './src/views/english.js';
 import { planningView } from './src/views/planning.js';
+import { recruiterIntro } from './src/views/showcase.js';
 import { AREAS, LABELS, areaOfTab, areaProgress, eventStatus, habitArea, taskArea, toMinutes } from './logic.js';
 
 const AGENDA_DAYS = [
@@ -36,12 +37,6 @@ function habitChip(habit) {
 
 /* ───────────────────────────── Hoy ───────────────────────────── */
 
-const TOUR = [
-  'Marcá una tarea del foco: el anillo y tus áreas se actualizan al instante.',
-  'Bajá a «Tu día en cuatro áreas»: cada hábito suma al área a la que pertenece.',
-  'Probá «Registrar»: contá un entrenamiento o una comida y mirá cómo cambian Gimnasio, Nutrición y tus áreas.',
-];
-
 function hoyView(data, ui) {
   const tasksDone = data.tasks.filter((t) => t.done).length;
   const remaining = data.tasks.length - tasksDone;
@@ -54,8 +49,8 @@ function hoyView(data, ui) {
   const areas = areaProgress(data, ui);
 
   return `
-    ${ui.tourOpen ? `<section class="tour" aria-label="Recorrido de la demo"><span class="kicker">Recorrido · ${ui.tourStep + 1} de 3</span><p>${TOUR[ui.tourStep]}</p><div class="tour-actions"><button type="button" class="btn btn-light" data-tour="next">${ui.tourStep === 2 ? 'Listo' : 'Siguiente'}</button><button type="button" class="icon-btn icon-btn-dark" data-tour="close" aria-label="Cerrar recorrido">${icon('close', 16)}</button></div></section>` : ''}
-    ${pageHead(`${data.dateLabel.replace(/^(\w+), /u, '$1 ').replace(/ DE 2026$/, '')} · ${data.demoClock.time}`, `Buen día, ${data.persona}.`, headline)}
+    ${recruiterIntro()}
+    ${pageHead(`Día de ejemplo · ${data.dateLabel.replace(/^(\w+), /u, '$1 ').replace(/ DE 2026$/, '')} · ${data.demoClock.time}`, `Buen día, ${data.persona}.`, headline)}
     <div class="cta-row">
       <button type="button" class="card cta-card is-primary" data-open-capture="" aria-haspopup="dialog"><span class="cta-icon" aria-hidden="true">${icon('plus', 20)}</span><span><strong>Registrar algo</strong><small>Contalo como lo dirías: «press de pecho, 3 series de 10 con 35 kilos»</small></span></button>
       <button type="button" class="card cta-card" data-tab="sistema"><span class="cta-icon is-soft" aria-hidden="true">${icon('code', 20)}</span><span><strong>Cómo funciona Vida 2.0</strong><small>De una conversación con ChatGPT a la fuente de verdad</small></span></button>

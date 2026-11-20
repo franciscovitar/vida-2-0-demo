@@ -76,6 +76,18 @@ const STATUS = { impl: 'Implementado', flag: 'Detrás de feature flag', draft: '
 export function systemView(ui) {
   const showDemo = ui.systemMode === 'demo';
   return `${pageHead('Arquitectura', 'Cómo funciona Vida 2.0', 'Chat para operar. Fuentes canónicas para guardar. Vida para ver, entender y decidir.')}
+    <section class="card case-study" aria-labelledby="case-study-title">
+      <div class="case-study-top">
+        <div><p class="kicker">Caso de estudio · Francisco Vitar</p><h2 id="case-study-title">El desafío detrás del producto.</h2><p class="muted">Diseño y desarrollo de un sistema personal para reunir información dispersa sin convertir la interfaz web en una segunda base de datos.</p></div>
+        <a class="btn btn-outline" href="https://github.com/franciscovitar" target="_blank" rel="noopener noreferrer">${icon('code', 16)} Perfil de GitHub</a>
+      </div>
+      <div class="case-study-grid">
+        <div><span class="case-study-number">01</span><h3>Problema</h3><p>Las tareas, entrenamientos, comidas y otros registros viven en fuentes distintas. Consultarlos uno por uno dificulta conectar su contexto.</p></div>
+        <div><span class="case-study-number">02</span><h3>Decisión de diseño</h3><p>Captura conversacional y autoridades canónicas por dominio. Vida lee, relaciona y explica; las escrituras sensibles incorporan controles adicionales.</p></div>
+        <div><span class="case-study-number">03</span><h3>Demostración pública</h3><p>15 vistas en cuatro áreas, cálculos derivados, formularios, deshacer y pruebas automatizadas. Datos sintéticos, sin credenciales ni conexiones externas.</p></div>
+      </div>
+      <p class="case-study-boundary"><strong>Transparencia:</strong> el original utiliza Next.js, TypeScript y servicios conectados; esta demo estática fue implementada por separado en JavaScript modular. Reproduce experiencias seleccionadas, no las integraciones privadas.</p>
+    </section>
     <section class="card system-hero">
       <div><p class="eyebrow a-org">La idea central</p><p class="system-quote">Registrar algo no debería exigir abrir un formulario. En el sistema real, lo contás en una conversación; cada dato termina en su fuente de verdad y Vida lo convierte en contexto, comparaciones y decisiones.</p></div>
       <div class="seg-control" role="group" aria-label="Ver flujo">${[['real', 'Sistema real'], ['demo', 'Esta demo']].map(([id, label]) => `<button type="button" data-system-mode="${id}" aria-pressed="${(ui.systemMode ?? 'real') === id}">${label}</button>`).join('')}</div>

@@ -9,6 +9,7 @@ import { checkAnswer, schedule } from './src/domain/study.js';
 import { CAPTURE_EXAMPLES, parseCapture } from './src/domain/capture.js';
 import { captureDialog } from './src/views/capture.js';
 import { removeCollection } from './src/domain/collections.js';
+import { recruiterGuide } from './src/views/showcase.js';
 
 const tabs = new Set(Object.keys(LABELS));
 const panel = document.querySelector('#panel');
@@ -17,7 +18,7 @@ const HISTORY_LIMIT = 40;
 
 const freshCapture = () => ({ open: false, mode: 'chat', formType: 'set', text: '', result: null, errors: {}, values: null, lastApplied: '' });
 const initialUi = Object.freeze({
-  tourOpen: true, tourStep: 0,
+  tourOpen: false, tourStep: 0,
   taskFilter: 'all', projectFilter: 'Todos', selectedProject: 'aurora',
   selectedDay: 0, selectedEvent: 'plan',
   healthMetric: 'sleep', healthTab: 'summary', healthScore: '',
@@ -119,7 +120,7 @@ function focusKey(root) {
 
 function render() {
   const key = focusKey(panel);
-  panel.innerHTML = moduleView(currentTab, data, ui);
+  panel.innerHTML = recruiterGuide(ui) + moduleView(currentTab, data, ui);
   applyVars(panel);
 
   const area = areaOfTab(currentTab) ?? 'hoy';
@@ -163,7 +164,7 @@ function changeTab(tab, { moveFocus = true } = {}) {
   render();
   if (moveFocus) {
     window.scrollTo?.({ top: 0 });
-    panel.querySelector?.('h1')?.focus({ preventScroll: true });
+    (ui.tourOpen ? panel.querySelector?.('.recruiter-guide') : panel.querySelector?.('h1'))?.focus({ preventScroll: true });
   }
   announce(`Sección ${LABELS[tab]}`);
 }
@@ -335,7 +336,9 @@ const submitHandlers = {
     ui.capture.lastApplied = '';
     ui.capture.result = ui.capture.text.trim() ? parseCapture(ui.capture.text, captureContext()) : { intents: [], unparsed: [] };
     renderCapture();
-    announce(`Interpretación lista: ${ui.capture.result.intents.length} registros reconocidos, ${ui.capture.result.unparsed.length} fragmentos sin interpretar.`);
+    const recognized = ui.capture.result.intents.length;
+    const unparsed = ui.capture.result.unparsed.length;
+    announce(`Interpretación lista: ${recognized} ${recognized === 1 ? 'registro reconocido' : 'registros reconocidos'}, ${unparsed} ${unparsed === 1 ? 'fragmento sin interpretar' : 'fragmentos sin interpretar'}.`);
     focusPreview();
   },
   confirm(form) {
@@ -398,7 +401,8 @@ const clickHandlers = {
     ui.capture.errors = {}; ui.capture.lastApplied = '';
     renderCapture();
     focusPreview();
-    announce(`Ejemplo interpretado: ${ui.capture.result.intents.length} registros.`);
+    const count = ui.capture.result.intents.length;
+    announce(`Ejemplo interpretado: ${count} ${count === 1 ? 'registro' : 'registros'}.`);
   },
   captureDrop: (value) => {
     syncPreview(document.querySelector?.('[data-capture-form="confirm"]'));
@@ -406,9 +410,26 @@ const clickHandlers = {
     renderCapture();
   },
   tour: (value) => {
-    if (value === 'close' || ui.tourStep >= 2) { ui.tourOpen = false; announce('Recorrido cerrado'); }
-    else { ui.tourStep += 1; announce(`Recorrido, paso ${ui.tourStep + 1} de 3`); }
-    render();
+    if (value === 'start') {
+      ui.tourOpen = true;
+      ui.tourStep = 0;
+      changeTab('hoy');
+      announce('Recorrido guiado, paso 1 de 3');
+      return;
+    }
+    if (value === 'close' || (value === 'next' && ui.tourStep >= 2)) {
+      ui.tourOpen = false;
+      render();
+      panel.querySelector?.('h1')?.focus({ preventScroll: true });
+      announce('Recorrido finalizado');
+      return;
+    }
+    ui.tourStep += value === 'prev' ? -1 : 1;
+    ui.tourStep = Math.max(0, Math.min(2, ui.tourStep));
+    if (ui.tourStep === 1) ui.financeTab = 'budget';
+    if (ui.tourStep === 2) ui.systemMode = 'real';
+    changeTab(['hoy', 'finanzas', 'sistema'][ui.tourStep]);
+    announce(`Recorrido guiado, paso ${ui.tourStep + 1} de 3`);
   },
   taskFilter: (value) => { ui.taskFilter = value; render(); announce(`Tareas: ${value === 'all' ? 'todas' : value}`); },
   filter: (value) => {
@@ -621,7 +642,6 @@ document.addEventListener('change', (event) => {
     const task = data.tasks.find((t) => t.id === taskCheck);
     if (task) {
       task.done = target.checked;
-      if (ui.tourOpen && ui.tourStep === 0) ui.tourStep = 1;
       render(); announce(`${task.label}: ${task.done ? 'completada' : 'pendiente'}`);
     }
   } else if (shoppingCheck) {

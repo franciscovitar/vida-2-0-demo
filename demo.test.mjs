@@ -318,18 +318,32 @@ test('«Tu día en cuatro áreas» suma cada acción a su área', () => {
   assert.match(ui.panel.innerHTML, /Vivir: 3 de 6 hoy/);
 });
 
-test('el recorrido avanza, se adelanta al marcar una tarea y se puede cerrar', () => {
+test('el recorrido para recruiters conecta captura, resultado y arquitectura sin impedir la navegación normal', () => {
   ui.click({ action: 'reset' });
-  assert.match(ui.panel.innerHTML, /Recorrido · 1 de 3/);
-  ui.change('flujo', 'taskCheck', true);
-  assert.match(ui.panel.innerHTML, /Recorrido · 2 de 3/);
+  assert.match(ui.panel.innerHTML, /Francisco Vitar · diseño y desarrollo/);
+  assert.match(ui.panel.innerHTML, /Recorrido guiado · 90 s/);
+  assert.doesNotMatch(ui.panel.innerHTML, /Recorrido guiado · 1 de 3/);
+  ui.click({ tour: 'start' });
+  assert.match(ui.panel.innerHTML, /Recorrido guiado · 1 de 3/);
+  assert.match(ui.panel.innerHTML, /Probar registro/);
   ui.click({ tour: 'next' });
-  assert.match(ui.panel.innerHTML, /Recorrido · 3 de 3/);
+  assert.equal(ui.breadcrumb.textContent, 'Finanzas');
+  assert.match(ui.panel.innerHTML, /Recorrido guiado · 2 de 3/);
+  assert.match(ui.panel.innerHTML, /Ver movimientos/);
+  ui.click({ tour: 'prev' });
+  assert.equal(ui.breadcrumb.textContent, 'Hoy');
+  assert.match(ui.panel.innerHTML, /Recorrido guiado · 1 de 3/);
   ui.click({ tour: 'next' });
-  assert.doesNotMatch(ui.panel.innerHTML, /Recorrido ·/);
+  ui.click({ tour: 'next' });
+  assert.equal(ui.breadcrumb.textContent, 'Cómo funciona');
+  assert.match(ui.panel.innerHTML, /Recorrido guiado · 3 de 3/);
+  assert.match(ui.panel.innerHTML, /El desafío detrás del producto/);
+  ui.click({ tour: 'next' });
+  assert.doesNotMatch(ui.panel.innerHTML, /Recorrido guiado · 3 de 3/);
   ui.click({ action: 'reset' });
+  ui.click({ tour: 'start' });
   ui.click({ tour: 'close' });
-  assert.doesNotMatch(ui.panel.innerHTML, /Recorrido ·/);
+  assert.doesNotMatch(ui.panel.innerHTML, /Recorrido guiado · 1 de 3/);
 });
 
 test('gimnasio registra series y calcula los kilos levantados', () => {

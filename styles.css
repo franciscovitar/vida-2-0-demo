@@ -225,14 +225,49 @@ h2 { font-size: 18px; font-weight: 600; letter-spacing: -0.015em; line-height: 1
 .habits-title { display: grid; gap: 2px; min-width: 110px; }
 .habits-title .muted { font-size: 13px; }
 
+/* ── Presentación de portfolio y recorrido guiado ── */
+.portfolio-intro { display: flex; gap: 24px; justify-content: space-between; align-items: center; padding: 24px 26px; border: 1px solid var(--org-track); border-radius: var(--radius); background: linear-gradient(125deg, #eeebff, #fafaff 66%, #fff); }
+.portfolio-intro-copy { display: grid; gap: 10px; min-width: 0; max-width: 760px; }
+.portfolio-intro .kicker { color: var(--org-fg); }
+.portfolio-intro-title { font-size: clamp(21px, 2.6vw, 29px); line-height: 1.18; letter-spacing: -0.035em; font-weight: 650; }
+.portfolio-intro-copy > p:not(.kicker) { color: var(--ink-2); font-size: 14px; max-width: 72ch; }
+.portfolio-actions { display: flex; flex-wrap: wrap; gap: 9px; margin-top: 4px; }
+.portfolio-facts { flex: 0 0 160px; display: grid; gap: 12px; padding-left: 22px; border-left: 1px solid var(--org-track); }
+.portfolio-facts > div { display: grid; gap: 2px; }
+.portfolio-facts dt { color: var(--org-fg); font: 650 24px/1.1 var(--font); letter-spacing: -0.03em; }
+.portfolio-facts dd { font-size: 12px; color: var(--ink-3); }
+.recruiter-guide { display: grid; gap: 10px; padding: 17px 20px 18px; border: 1px solid var(--org-track); border-left: 4px solid var(--org); border-radius: 12px; background: var(--org-bg); }
+.recruiter-guide-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.recruiter-guide .kicker { color: var(--org-fg); }
+.recruiter-guide h2 { font-size: 18px; line-height: 1.3; letter-spacing: -0.015em; }
+.recruiter-guide p { color: var(--ink-2); font-size: 14px; max-width: 95ch; }
+.recruiter-guide-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 5px; }
+.recruiter-guide .icon-btn { flex: none; width: 32px; height: 32px; color: var(--ink-3); }
+.recruiter-guide .icon-btn:hover { background: rgb(102 92 240 / 0.08); }
+.case-study { display: grid; gap: 22px; border-color: var(--org-track); }
+.case-study-top { display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 18px; }
+.case-study-top > div { display: grid; gap: 8px; max-width: 77ch; }
+.case-study-top h2 { font-size: 26px; letter-spacing: -0.025em; line-height: 1.2; }
+.case-study .kicker { color: var(--org-fg); }
+.case-study-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.case-study-grid > div { display: grid; align-content: start; gap: 7px; padding: 16px; border: 1px solid var(--line); border-radius: 12px; background: var(--ground); }
+.case-study-number { color: var(--org-fg); font: 500 12px var(--mono); }
+.case-study-grid h3 { font-size: 16px; }
+.case-study-grid p, .case-study-boundary { color: var(--ink-2); font-size: 13px; }
+.case-study-boundary { padding-top: 15px; border-top: 1px solid var(--line); }
+@media (max-width: 800px) {
+  .portfolio-intro { align-items: stretch; flex-direction: column; padding: 20px; }
+  .portfolio-facts { flex: auto; grid-template-columns: repeat(3, minmax(0, 1fr)); border-left: 0; border-top: 1px solid var(--org-track); padding: 14px 0 0; gap: 8px; }
+  .case-study-grid { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 500px) {
+  .portfolio-intro { padding: 17px; }
+  .portfolio-actions .btn { width: 100%; }
+  .portfolio-facts dt { font-size: 21px; }
+  .recruiter-guide { padding: 14px; }
+  .recruiter-guide-actions > .btn { flex: 1 1 100%; }
+}
 /* ── Hoy ────────────────────────────────────────── */
-.tour { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; padding: 12px 12px 12px 20px; border: 1px solid var(--org-track); border-radius: 12px; background: var(--org-bg); color: var(--ink); }
-.tour .kicker { color: var(--org-fg); }
-.tour .btn-light { background: var(--org); color: #fff; }
-.tour .icon-btn-dark { color: var(--ink-3); }
-.tour .icon-btn-dark:hover { background: rgb(102 92 240 / 0.09); }
-.tour p { flex: 1 1 280px; font-size: 15px; line-height: 1.45; }
-.tour-actions { display: flex; align-items: center; gap: 4px; }
 .today-grid { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 20px; }
 .focus-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; margin-bottom: 10px; }
 .focus-head > div { display: grid; gap: 6px; }

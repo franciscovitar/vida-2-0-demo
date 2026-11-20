@@ -33,8 +33,21 @@ class PreviewHandler(SimpleHTTPRequestHandler):
 def check(page, url, width, errors, requests):
     page.goto(url, wait_until="load")
     assert "Buen día, Alex" in page.locator("#panel").inner_text()
+    assert "Francisco Vitar" in page.locator("#panel").inner_text()
+    assert "Día de ejemplo" in page.locator("#panel").inner_text()
     assert page.locator("#mobile-nav").get_attribute("aria-label") == "Ir a un módulo"
     assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1"), f"overflow al abrir ({width}px)"
+
+    page.locator('[data-tour="start"]').click()
+    assert "Recorrido guiado · 1 de 3" in page.locator("#panel").inner_text()
+    page.locator('[data-tour="next"]').click()
+    assert "Recorrido guiado · 2 de 3" in page.locator("#panel").inner_text()
+    assert page.locator("#mobile-nav").input_value() == "finanzas"
+    page.locator('[data-tour="next"]').click()
+    assert page.locator("#mobile-nav").input_value() == "sistema"
+    assert "El desafío detrás del producto" in page.locator("#panel").inner_text()
+    page.locator('[data-tour="next"]').click()
+    assert "Recorrido guiado · 3 de 3" not in page.locator("#panel").inner_text()
 
     page.locator("#mobile-nav").select_option("nutricion")
     page.locator('[data-nutrition-tab="nutrientes"]').click()
@@ -90,7 +103,7 @@ if __name__ == "__main__":
     try:
         with sync_playwright() as playwright:
             browser = playwright.chromium.launch(
-                executable_path=os.environ.get("CHROMIUM_PATH", "/usr/bin/chromium"),
+                executable_path=os.environ.get("CHROMIUM_PATH") or None,
                 headless=True,
                 args=["--no-sandbox", "--disable-dev-shm-usage"],
             )
