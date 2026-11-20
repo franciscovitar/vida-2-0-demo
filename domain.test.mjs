@@ -2,7 +2,9 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
 import { initialData } from './data.js';
-import { applyIntent, editSet, togglePlannedSet, validateIntent } from './src/domain/actions.js';
+import { applyIntent, editSet, recordPurchase, togglePlannedSet, validateIntent } from './src/domain/actions.js';
+import { removeCollection } from './src/domain/collections.js';
+import { estimateCadence } from './src/domain/replenishment.js';
 import { parseCapture } from './src/domain/capture.js';
 import { compare, e1rmSeries, epley, lastComparable, sessionSummary, validateSet, weeklyVolume } from './src/domain/gym.js';
 import { dailySeries, energyStatus, macroShares, toGrams, totals, validateFoodEntry } from './src/domain/nutrition.js';
@@ -55,6 +57,81 @@ import { withMeta } from './src/views/gym.js';
 import { esc } from './src/views/ui.js';
 
 const fresh = () => structuredClone(initialData);
+
+test('compras: alta, edición, historial y retiro sin inventar una predicción', () => {
+  const d = fresh();
+  const input = { kind: 'shopping.item', name: 'Café nuevo', category: 'Almacén', amount: '500 g' };
+  assert.equal(validateIntent(d, { ...input, amount: '' }).ok, false);
+  assert.equal(validateIntent(d, input).ok, true);
+  applyIntent(d, input);
+  const item = d.shopping.at(-1);
+  const need = d.household.needs.at(-1);
+  assert.equal(item.needId, need.id);
+  assert.equal(need.isDemoAdded, true);
+  let estimate = estimateCadence({ need, purchases: need.purchases, corrections: [], now: new Date(`${d.today}T12:00:00Z`) });
+  assert.equal(estimate.expectedIntervalDays, null);
+  assert.equal(estimate.nextExpectedAt, null);
+  assert.equal(estimate.confidence, 'LOW');
+  recordPurchase(d, need.id);
+  estimate = estimateCadence({ need, purchases: d.household.extraPurchases.filter((p) => p.needId === need.id), corrections: [], now: new Date(`${d.today}T12:00:00Z`) });
+  assert.equal(estimate.observations, 1);
+  assert.equal(estimate.nextExpectedAt, null);
+  applyIntent(d, { ...input, id: item.id, name: 'Café tostado', amount: '250 g' });
+  assert.equal(need.name, 'Café tostado');
+  assert.equal(d.household.extraPurchases.length, 1);
+  assert.equal(removeCollection(d, 'shopping.item', item.id), true);
+  assert.equal(d.household.extraPurchases.length, 1, 'quitar de la lista no borra las compras históricas');
+  assert.equal(validateIntent(d, { ...input, name: '<img onerror=alert(1)>' }).ok, true, 'texto arbitrario es dato, no HTML');
+});
+
+test('películas y series: altas, edición, validación, temporada, pausa y eliminación', () => {
+  const d = fresh();
+  const film = { kind: 'media.movie', title: 'Viaje de prueba', genre: 'Aventura', year: '2026', status: 'watched', rating: '5', watchedOn: d.today, note: 'Buena puesta en escena' };
+  assert.equal(validateIntent(d, { ...film, rating: '9' }).ok, false);
+  assert.equal(validateIntent(d, { ...film, watchedOn: '2027-01-01' }).ok, false);
+  assert.equal(validateIntent(d, film).ok, true);
+  applyIntent(d, film);
+  const movie = d.movies.at(-1);
+  assert.equal(movie.rating, 5);
+  applyIntent(d, { ...film, id: movie.id, status: 'planned', rating: '', watchedOn: '', note: 'Para volver a mirar' });
+  assert.equal(movie.watched, false);
+  assert.equal(movie.rating, null);
+  assert.equal(removeCollection(d, 'media.movie', movie.id), true);
+
+  const seriesInput = { kind: 'media.series', title: 'Un verano', genre: 'Drama', year: '2026', minutesPerEpisode: '40', episodes: '6' };
+  assert.equal(validateIntent(d, seriesInput).ok, true);
+  applyIntent(d, seriesInput);
+  const series = d.series.at(-1);
+  assert.equal(series.seasons[0].episodes, 6);
+  applyIntent(d, { kind: 'media.season', seriesId: series.id, episodes: '8' });
+  assert.deepEqual(series.seasons.map((s) => s.episodes), [6, 8]);
+  assert.equal(validateIntent(d, { kind: 'media.season', seriesId: series.id, episodes: '0' }).ok, false);
+  applyIntent(d, { ...seriesInput, id: series.id, title: 'Verano de prueba' });
+  assert.equal(series.title, 'Verano de prueba');
+  assert.equal(removeCollection(d, 'media.series', series.id), true);
+});
+
+test('mazos: alta de mazo y tarjeta, edición invalida repaso y borrado desplaza solo los estados posteriores', () => {
+  const d = fresh();
+  const deckInput = { kind: 'study.deck', title: 'Álgebra básica', topic: 'Matemática', front: '¿Qué es una variable?', back: 'Un símbolo que representa un valor.' };
+  assert.equal(validateIntent(d, { ...deckInput, back: '' }).ok, false);
+  applyIntent(d, deckInput);
+  const deck = d.decks.at(-1);
+  applyIntent(d, { kind: 'study.card', deckId: deck.id, front: '¿Qué es un polinomio?', back: 'Una suma de monomios.' });
+  applyIntent(d, { kind: 'study.card', deckId: deck.id, front: '¿Qué es un exponente?', back: 'Indica la potencia.' });
+  d.study[`${deck.id}:0`] = { reps: 1 };
+  d.study[`${deck.id}:1`] = { reps: 2 };
+  d.study[`${deck.id}:2`] = { reps: 3 };
+  applyIntent(d, { kind: 'study.card', deckId: deck.id, index: '0', front: '¿Qué es una incógnita?', back: 'Una cantidad no conocida.' });
+  assert.equal(d.study[`${deck.id}:0`], undefined);
+  assert.equal(removeCollection(d, 'study.card', deck.id, '1'), true);
+  assert.equal(deck.cards.length, 2);
+  assert.equal(d.study[`${deck.id}:1`]?.reps, 3);
+  assert.equal(removeCollection(d, 'study.card', deck.id, '0'), true);
+  assert.equal(removeCollection(d, 'study.card', deck.id, '0'), false, 'no se puede dejar un mazo vacío');
+  assert.equal(removeCollection(d, 'study.deck', deck.id), true);
+  assert.equal(Object.keys(d.study).some((key) => key.startsWith(`${deck.id}:`)), false);
+});
 const ctx = (data) => ({
   exercises: data.gym.exercises.map((e) => ({ id: e.id, name: e.name, ...data.gym.exerciseMeta[e.id] })),
   catalog: data.nutrition.catalog,

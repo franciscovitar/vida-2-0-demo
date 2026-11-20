@@ -369,7 +369,7 @@ h2 { font-size: 18px; font-weight: 600; letter-spacing: -0.015em; line-height: 1
 .meal-macros dt { font-size: 12px; color: var(--ink-3); }
 
 /* ── Aprender ───────────────────────────────────── */
-.deck-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.deck-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; }
 .deck { display: grid; gap: 4px; min-height: 68px; padding: 12px 14px; border: 1px solid var(--line-2); border-radius: 12px; background: var(--surface); text-align: left; transition: all 0.16s var(--ease); }
 .deck small { font-size: 12px; color: var(--ink-3); }
 .deck:hover { border-color: var(--line-3); }
@@ -433,13 +433,28 @@ h2 { font-size: 18px; font-weight: 600; letter-spacing: -0.015em; line-height: 1
 .month-bars small { font-size: 11px; color: var(--ink-3); }
 .shop-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
 .shop-grid .eyebrow { color: var(--ink-3); margin-bottom: 6px; }
-.movie-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 20px; }
+.movie-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 16px; }
 .movie { display: grid; gap: 10px; align-content: start; }
 .poster { position: relative; aspect-ratio: 2 / 3; padding: 16px; border-radius: 14px; overflow: hidden; display: flex; flex-direction: column; justify-content: space-between; color: #fff; }
 .poster::after { content: ''; position: absolute; right: -36px; top: -36px; width: 160px; height: 160px; border-radius: 50%; border: 20px solid rgb(255 255 255 / 0.12); }
 .poster::before { content: ''; position: absolute; left: -20px; bottom: 30%; width: 90px; height: 90px; border-radius: 50%; background: rgb(255 255 255 / 0.06); }
 .poster .mono { font-size: 12px; color: rgb(255 255 255 / 0.85); position: relative; }
 .poster strong { position: relative; font-size: 22px; line-height: 1.1; letter-spacing: -0.02em; }
+.movie .poster { aspect-ratio: 5 / 4; min-height: 165px; }
+.movie .poster strong { font-size: clamp(17px, 1.65vw, 22px); overflow-wrap: anywhere; }
+.movie-note { overflow-wrap: anywhere; line-height: 1.5; color: var(--ink-2); }
+.module-actions { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; justify-content: space-between; margin: 8px 0 16px; }
+.module-actions p { flex: 1 1 260px; }
+.module-actions .btn { flex: none; }
+.inline-editor { margin: 10px 0 22px; border-left: 3px solid var(--org); }
+.inline-editor h2 { margin-bottom: 12px; }
+.inline-editor form { display: grid; gap: 14px; }
+.editor-actions, .item-actions, .series-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.item-actions { padding-top: 4px; justify-content: flex-end; }
+.shop-item + .shop-item { border-top: 1px solid var(--line); }
+.shop-item .check-row { min-width: 0; }
+.shop-item .item-actions { padding: 0 10px 10px; }
+.field.editor-wide { grid-column: 1 / -1; }
 .poster-violet { background: #4941b1; } .poster-blue { background: #1e4e79; } .poster-green { background: #09523f; } .poster-amber { background: #7e5413; }
 
 /* ── Tablet y mobile ────────────────────────────── */
@@ -501,7 +516,7 @@ h2 { font-size: 18px; font-weight: 600; letter-spacing: -0.015em; line-height: 1
   .bar-col .bar-val { font-size: 10px; }
   .bar-day { font-size: 12px; }
   .exercise-grid, .deck-grid { grid-template-columns: minmax(0, 1fr); }
-  .deck-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+  .deck-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
   .deck { padding: 10px; }
   .deck strong { font-size: 13px; line-height: 1.25; }
   .gym-top .btn { width: 100%; margin-left: 0; }

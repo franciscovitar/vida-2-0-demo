@@ -260,7 +260,8 @@ test('las fixtures son consistentes, únicas y no están asociadas a las cuentas
   assert.ok(initialData.agenda.every((item) => Number.isInteger(item.day) && item.day >= 0 && item.day <= 2));
   assert.ok(initialData.projects.every((item) => item.progress >= 0 && item.progress <= 100));
   assert.doesNotMatch(JSON.stringify(initialData), /francisco|vitar|genova|gmail|UTN|personal.ai.system|vida.2\.0/i);
-  assert.equal(initialData.decks.length, 3);
+  assert.equal(initialData.decks.length, 7);
+  assert.ok(initialData.decks.every((deck) => deck.cards.length >= 6));
   assert.equal(initialData.shopping.length, 6);
   assert.equal(initialData.movies.length, 4);
 });
@@ -598,7 +599,7 @@ test('estudio: respuesta escrita, calificación y próximos repasos', () => {
   ui.click({ cardRate: 'easy' });
   assert.match(ui.panel.innerHTML, /Próximos repasos de este mazo/);
   assert.match(ui.panel.innerHTML, /en 4 días/);
-  assert.match(ui.panel.innerHTML, /0 nuevas · 0 en sesión · 3 programadas/);
+  assert.match(ui.panel.innerHTML, /4 nuevas · 0 en sesión · 3 programadas/);
 });
 
 test('películas y series: progreso por episodio, calificación por temporada y resumen', () => {
@@ -685,19 +686,97 @@ test('inglés: un error recurrente se convierte en tarjeta del mazo, sin duplica
   assert.match(ui.panel.innerHTML, /patrón recurrente de tu perfil: <strong>«since» vs «for»/);
   ui.click({ englishCard: 'w-since' });
   assert.match(ui.panel.innerHTML, /Ya está en el mazo/);
-  assert.equal(app.__test.data.decks.find((d) => d.id === 'english').cards.length, 4);
+  assert.equal(app.__test.data.decks.find((d) => d.id === 'english').cards.length, 8);
   ui.click({ englishTab: 'profile' });
   assert.match(ui.panel.innerHTML, /B1 \(provisional\)/);
   assert.match(ui.panel.innerHTML, /Pronunciación[\s\S]*?Sin evidencia suficiente/);
   ui.click({ englishCard: 'w-third' });
   ui.click({ tab: 'mazos' });
   ui.click({ deck: 'english' });
-  assert.match(ui.panel.innerHTML, /Idiomas · 5 tarjetas/);
+  assert.match(ui.panel.innerHTML, /Idiomas · 9 tarjetas/);
   ui.click({ tab: 'ingles' });
   ui.click({ englishTab: 'sessions' });
   app.__test.submit('english-session', { type: 'conversation', minutes: '30', focus: 'Pitch del producto' });
   assert.match(ui.panel.innerHTML, /Pitch del producto/);
   assert.match(ui.panel.innerHTML, /Sesiones en noviembre<\/dt><dd class="mono">6/);
+});
+
+test('etapa de profundidad: compras agrega, edita, marca, deshace y elimina productos', () => {
+  ui.click({ action: 'reset' });
+  ui.click({ tab: 'compras' });
+  ui.click({ collectionEdit: 'shopping.item' });
+  assert.match(ui.panel.innerHTML, /Nuevo producto/);
+  app.__test.submit('collection', { name: 'A', category: '', amount: '' }, { kind: 'shopping.item' });
+  assert.match(ui.panel.innerHTML, /Producto: entre 2 y 80 caracteres/);
+  app.__test.submit('collection', { name: 'Café de prueba', category: 'Almacén', amount: '250 g' }, { kind: 'shopping.item' });
+  assert.match(ui.panel.innerHTML, /Café de prueba/);
+  const item = app.__test.data.shopping.at(-1);
+  assert.equal(app.__test.data.shopping.length, 7);
+  assert.equal(app.__test.data.household.needs.at(-1).purchases.length, 0);
+  ui.click({ shoppingTab: 'restock' });
+  assert.match(ui.panel.innerHTML, /Café de prueba[\s\S]*?Sin datos para predecir/);
+  ui.click({ shoppingTab: 'list' });
+  ui.change(item.id, 'shoppingCheck', true);
+  assert.equal(app.__test.data.household.extraPurchases.at(-1).needId, item.needId);
+  app.__test.undo();
+  assert.equal(app.__test.data.shopping.at(-1).checked, false);
+  ui.click({ collectionEdit: `shopping.item|${item.id}` });
+  app.__test.submit('collection', { name: 'Café instantáneo', category: 'Almacén', amount: '1 frasco' }, { kind: 'shopping.item', id: item.id });
+  assert.match(ui.panel.innerHTML, /Café instantáneo/);
+  ui.click({ collectionRemove: `shopping.item|${item.id}` });
+  assert.equal(app.__test.data.shopping.length, 6);
+  app.__test.undo();
+  assert.equal(app.__test.data.shopping.length, 7);
+});
+
+test('etapa de profundidad: registrar película, serie, temporada y resumen con datos del visitante', () => {
+  ui.click({ action: 'reset' });
+  ui.click({ tab: 'peliculas' });
+  ui.click({ openCapture: 'media.movie' });
+  app.__test.submit('quick', { title: '<img src=x onerror=alert(1)>', genre: 'Drama', year: '2026', status: 'watched', rating: '5', watchedOn: '2026-11-17', note: 'Excelente' });
+  assert.equal(app.__test.data.movies.length, 5);
+  assert.match(ui.panel.innerHTML, /&lt;img src=x onerror=alert\(1\)&gt;/);
+  assert.doesNotMatch(ui.panel.innerHTML, /<img src=x onerror=/);
+  ui.click({ collectionEdit: 'media.series' });
+  app.__test.submit('collection', { title: 'Miniserie nueva', genre: 'Suspenso', year: '2026', minutesPerEpisode: '45', episodes: '6', note: 'Temporada piloto' }, { kind: 'media.series' });
+  const series = app.__test.data.series.at(-1);
+  assert.equal(series.seasons[0].watched, 0);
+  ui.click({ episode: series.id });
+  ui.click({ seriesPause: series.id });
+  assert.match(ui.panel.innerHTML, /En pausa/);
+  ui.click({ collectionEdit: `media.season|${series.id}` });
+  app.__test.submit('collection', { episodes: '8' }, { kind: 'media.season', seriesId: series.id });
+  assert.equal(app.__test.data.series.at(-1).seasons.length, 2);
+  ui.click({ mediaTab: 'summary' });
+  assert.match(ui.panel.innerHTML, /Películas vistas/);
+  assert.match(ui.panel.innerHTML, /Calificación promedio/);
+  ui.click({ collectionRemove: `media.series|${series.id}` });
+  assert.equal(app.__test.data.series.length, initialData.series.length);
+});
+
+test('etapa de profundidad: crear mazo, editar tarjeta y registrar desde formulario global', () => {
+  ui.click({ action: 'reset' });
+  ui.click({ tab: 'mazos' });
+  ui.click({ collectionEdit: 'study.deck' });
+  app.__test.submit('collection', { title: 'Conceptos de prueba', topic: 'Formación', front: '¿Qué prueba esta demo?', back: 'Que la tarjeta se puede registrar.' }, { kind: 'study.deck' });
+  const deck = app.__test.data.decks.at(-1);
+  assert.equal(app.__test.ui.deck, deck.id);
+  assert.match(ui.panel.innerHTML, /Conceptos de prueba/);
+  ui.click({ collectionEdit: `study.card|${deck.id}` });
+  app.__test.submit('collection', { front: '¿Segunda pregunta?', back: 'Segunda respuesta.' }, { kind: 'study.card', deckId: deck.id });
+  assert.equal(app.__test.data.decks.at(-1).cards.length, 2);
+  ui.click({ nextCard: '' });
+  assert.equal(app.__test.data.study[`${deck.id}:0`].reps, 1);
+  ui.click({ collectionEdit: `study.card|${deck.id}|0` });
+  app.__test.submit('collection', { front: '¿Pregunta corregida?', back: 'Respuesta corregida.' }, { kind: 'study.card', deckId: deck.id, index: '0' });
+  assert.equal(app.__test.data.study[`${deck.id}:0`], undefined);
+  ui.click({ openCapture: 'study.card' });
+  app.__test.submit('quick', { deckId: deck.id, front: '¿Tercera pregunta?', back: 'Tercera respuesta.' });
+  assert.equal(app.__test.data.decks.at(-1).cards.length, 3);
+  ui.click({ collectionRemove: `study.card|${deck.id}|1` });
+  assert.equal(app.__test.data.decks.at(-1).cards.length, 2);
+  app.__test.undo();
+  assert.equal(app.__test.data.decks.at(-1).cards.length, 3);
 });
 
 test('etapa 5B: ventanas de nutrientes, benchmark, rutina y cobertura explícita', () => {

@@ -1,6 +1,7 @@
 /** Contenido del diálogo «Registrar»: captura conversacional (parser local) y formularios. Plantillas puras. */
 import { CAPTURE_EXAMPLES } from '../domain/capture.js';
 import { esc, fieldError, icon } from './ui.js';
+import { collectionFields, COLLECTION_KINDS } from './collection-fields.js';
 
 const MOMENTS = ['Desayuno', 'Almuerzo', 'Merienda', 'Cena', 'Colación'];
 const KIND_LABEL = { 'gym.set': 'Gimnasio · serie', 'food.entry': 'Nutrición · alimento', 'finance.expense': 'Finanzas · gasto', 'task.create': 'Organizar · tarea', 'cardio.session': 'Gimnasio · cardio', 'household.purchase': 'Compras · reposición' };
@@ -83,8 +84,8 @@ function quickForm(capture, data) {
       ${input('description', 'Descripción', v.description ?? '', 'maxlength="60" placeholder="Supermercado"', fieldError(e, 'description'))}`,
     task: () => `${input('title', 'Tarea', v.title ?? '', 'maxlength="120" class="wide" placeholder="Ej.: Revisar el presupuesto de diciembre"', fieldError(e, 'title'))}
       ${select('priority', 'Prioridad', [['Media', 'Media'], ['Alta', 'Alta']], v.priority ?? 'Media')}`,
-  }[type]();
-  return `<div class="chips" role="group" aria-label="Tipo de registro">${[['set', 'Serie'], ['food', 'Comida'], ['expense', 'Gasto'], ['task', 'Tarea']].map(([id, label]) => `<button type="button" class="chip-btn" data-capture-type="${id}" aria-pressed="${type === id}">${label}</button>`).join('')}</div>
+  }[type]?.() ?? (COLLECTION_KINDS[type] ? collectionFields(type, v, data, e) : '');
+  return `<div class="chips" role="group" aria-label="Tipo de registro">${[['set', 'Serie de gimnasio'], ['food', 'Comida'], ['expense', 'Gasto'], ['task', 'Tarea'], ['shopping.item', 'Compra'], ['media.movie', 'Película'], ['media.series', 'Serie de TV'], ['study.deck', 'Mazo'], ['study.card', 'Tarjeta']].map(([id, label]) => `<button type="button" class="chip-btn" data-capture-type="${id}" aria-pressed="${type === id}">${label}</button>`).join('')}</div>
     <form class="capture-quick" data-capture-form="quick" novalidate><div class="form-grid">${body}</div><button type="submit" class="btn btn-dark btn-block">${icon('check', 16)} Guardar</button></form>`;
 }
 

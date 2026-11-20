@@ -8,6 +8,7 @@ import { addAchievement, addEnglishCard, addEnglishSession, addEpisode, addResto
 import { checkAnswer, schedule } from './src/domain/study.js';
 import { CAPTURE_EXAMPLES, parseCapture } from './src/domain/capture.js';
 import { captureDialog } from './src/views/capture.js';
+import { removeCollection } from './src/domain/collections.js';
 
 const tabs = new Set(Object.keys(LABELS));
 const panel = document.querySelector('#panel');
@@ -27,7 +28,7 @@ const initialUi = Object.freeze({
   financeCategory: 'home', financeMode: 'left', financeTab: 'budget', purchase: null, movementFilter: 'all',
   infoTab: 'readings', infoFront: 'all', infoOpen: '',
   planTab: 'continuity', continuityEdit: '', englishTab: 'practice', reviewDraft: null,
-  shoppingTab: 'list', mediaTab: 'films', seriesFilter: 'all', moviesFilter: 'Todas', answerResult: null,
+  shoppingTab: 'list', mediaTab: 'films', seriesFilter: 'all', moviesFilter: 'Todas', answerResult: null, collectionEditor: null,
   systemMode: 'real',
 });
 const freshUi = () => ({ ...initialUi, formErrors: {}, cardioDraft: { modality: 'bike', minutes: 40, rpe: '', watts: '' }, foodDraft: { foodId: 'banana', amount: 1, portionId: 'unit', moment: 'Desayuno' }, capture: freshCapture() });
@@ -156,6 +157,7 @@ function renderCapture() {
 function changeTab(tab, { moveFocus = true } = {}) {
   if (!tabs.has(tab)) return;
   currentTab = tab;
+  ui.collectionEditor = null;
   if (location.hash !== `#${tab}`) history.replaceState(null, '', `#${tab}`);
   closeCapture({ restoreFocus: false });
   render();
@@ -352,10 +354,31 @@ const submitHandlers = {
       intent = { kind: 'food.entry', foodId: values.foodId, amount: values.amount, portionId: values.portionUnit === 'g' ? 'g' : food.portions[0].id, moment: values.moment };
     } else if (type === 'expense') {
       intent = { kind: 'finance.expense', amount: values.amount, categoryId: values.categoryId, description: values.description };
+    } else if (['shopping.item', 'media.movie', 'media.series', 'study.deck', 'study.card'].includes(type)) {
+      intent = { kind: type, ...values };
     } else {
       intent = { kind: 'task.create', title: values.title, priority: values.priority };
     }
     if (confirmIntents([{ ...intent, key: 'quick' }])) ui.capture.values = null;
+  },
+  collection(form, values) {
+    const intent = { kind: form.dataset.kind, ...values, id: form.dataset.id || undefined, deckId: form.dataset.deckId || values.deckId, index: form.dataset.index, seriesId: form.dataset.seriesId };
+    const check = validateIntent(data, intent);
+    if (!check.ok) {
+      ui.formErrors.collection = check.errors;
+      ui.collectionEditor = { ...ui.collectionEditor, values: { ...values, id: intent.id, deckId: intent.deckId, index: intent.index, seriesId: intent.seriesId } };
+      render(); announce('Revisá los campos indicados.'); return;
+    }
+    const kind = intent.kind;
+    const wasNewDeck = kind === 'study.deck' && !intent.id;
+    ui.formErrors.collection = {};
+    ui.collectionEditor = null;
+    commit('Registro guardado', (draft) => { applyIntent(draft, intent); });
+    if (wasNewDeck) {
+      ui.deck = data.decks.at(-1).id;
+      ui.cardIndex = 0; ui.cardFlipped = false;
+      render();
+    }
   },
 };
 
@@ -409,6 +432,30 @@ const clickHandlers = {
   },
   movementFilter: (value) => { ui.movementFilter = value; render(); },
   shoppingTab: (value) => { ui.shoppingTab = value; render(); },
+  collectionEdit: (value) => {
+    const [kind, id, index] = value.split('|');
+    ui.collectionEditor = { kind };
+    if (kind === 'study.card') { ui.collectionEditor.deckId = id; if (index !== undefined) ui.collectionEditor.index = index; }
+    else if (kind === 'media.season') ui.collectionEditor.seriesId = id;
+    else if (id) ui.collectionEditor.id = id;
+    ui.formErrors.collection = {};
+    if (kind === 'media.movie') ui.mediaTab = 'films';
+    if (kind === 'media.series' || kind === 'media.season') ui.mediaTab = 'series';
+    if (kind === 'shopping.item') ui.shoppingTab = 'list';
+    render();
+    panel.querySelector?.('.inline-editor input, .inline-editor textarea, .inline-editor select')?.focus({ preventScroll: true });
+  },
+  editorClose: () => { ui.collectionEditor = null; ui.formErrors.collection = {}; render(); },
+  collectionRemove: (value) => {
+    const [kind, id, index] = value.split('|');
+    const changed = commit('Registro eliminado', (draft) => removeCollection(draft, kind, id, index));
+    if (!changed) return;
+    ui.collectionEditor = null;
+    if (kind === 'study.deck' && ui.deck === id) ui.deck = data.decks[0].id;
+    if (kind === 'study.card') ui.cardIndex = 0;
+    ui.answerResult = null; ui.cardFlipped = false;
+    render();
+  },
   restockAdd: (value) => commit('Agregado a la lista de compras', (draft) => addRestockToList(draft, value)),
   restockCorrect: (value) => { const [id, type] = value.split(':'); commit('Corrección registrada: la reposición se recalculó', (draft) => { recordCorrection(draft, id, type); }); },
   restockBought: (value) => commit('Compra registrada: la reposición se recalculó', (draft) => { recordPurchase(draft, value); }),
@@ -435,6 +482,11 @@ const clickHandlers = {
     a.runs = [{ id: `run-${(draft.seq = (draft.seq ?? 0) + 1)}`, at: `${draft.today}T${draft.demoClock.time}`, state: a.enabled ? 'succeeded' : 'skipped', detail: a.enabled ? 'Ejecución manual simulada' : 'Pausada: el kill switch impidió la ejecución' }, ...a.runs];
   }),
   seriesFilter: (value) => { ui.seriesFilter = value; render(); },
+  seriesPause: (value) => commit('Estado de serie actualizado', (draft) => {
+    const series = draft.series.find((s) => s.id === value);
+    if (!series) return false;
+    series.paused = !series.paused;
+  }),
   episode: (value) => { let label = null; commit('Episodio registrado', (draft) => { label = addEpisode(draft, value); return label ? undefined : false; }); },
   seasonRate: (value) => { const [id, n, r] = value.split(':'); commit('Calificación de temporada guardada', (draft) => (rateSeason(draft, id, Number(n), Number(r)) ? undefined : false)); },
   cardRate: (value) => advanceCard('cardKnown', value),
@@ -457,6 +509,7 @@ const clickHandlers = {
   foodRemove: (value) => commit('Alimento quitado', (draft) => { draft.nutrition.days[0].meals = draft.nutrition.days[0].meals.filter((m) => m.id !== value); }),
   meal: (value) => { ui.mealOpen = ui.mealOpen === value ? '' : value; render(); },
   deck: (value) => {
+    ui.collectionEditor = null;
     Object.assign(ui, { deck: value, cardIndex: 0, cardFlipped: false, cardKnown: 0, cardAgain: 0 });
     render(); announce(`Mazo ${data.decks.find((d) => d.id === value)?.title ?? ''}`);
   },
@@ -476,11 +529,13 @@ const clickHandlers = {
   systemMode: (value) => { ui.systemMode = value; render(); },
   moviesFilter: (value) => { ui.moviesFilter = value; render(); announce(`Películas: ${value}`); },
   movieToggle: (value) => {
-    const movie = data.movies.find((m) => m.id === value);
-    if (!movie) return;
-    movie.watched = !movie.watched;
-    movie.rating = movie.watched ? (initialData.movies.find((m) => m.id === value)?.rating ?? null) : null;
-    render(); announce(`${movie.title}: ${movie.watched ? 'vista' : 'por ver'}`);
+    commit('Estado de película actualizado', (draft) => {
+      const movie = draft.movies.find((m) => m.id === value);
+      if (!movie) return false;
+      movie.watched = !movie.watched;
+      if (!movie.watched) { movie.savedRating = movie.rating; movie.rating = null; movie.watchedOn = null; }
+      else movie.rating = movie.savedRating ?? null;
+    });
   },
 };
 
@@ -560,14 +615,15 @@ document.addEventListener('change', (event) => {
   } else if (shoppingCheck) {
     const item = data.shopping.find((s) => s.id === shoppingCheck);
     if (item) {
-      item.checked = target.checked;
-      // Un producto sugerido por la reposición, al tacharlo, cuenta como compra (y se puede deshacer destildándolo).
-      if (item.needId) {
-        const ref = `buy-${item.id}`;
-        data.household.extraPurchases = data.household.extraPurchases.filter((p) => p.id !== ref);
-        if (item.checked) { recordPurchase(data, item.needId, ref); item.checked = true; }
-      }
-      render(); announce(`${item.name}: ${item.checked ? 'en la compra' : 'pendiente'}`); }
+      commit(target.checked ? 'Producto comprado' : 'Producto devuelto a pendientes', (draft) => {
+        const current = draft.shopping.find((s) => s.id === shoppingCheck);
+        current.checked = target.checked;
+        if (current.needId) {
+          const ref = `buy-${current.id}`;
+          draft.household.extraPurchases = draft.household.extraPurchases.filter((p) => p.id !== ref);
+          if (current.checked) { recordPurchase(draft, current.needId, ref); current.checked = true; }
+        }
+      }); }
   }
 });
 

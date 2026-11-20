@@ -180,3 +180,11 @@ Investigado en el original antes de implementar: `lib/finance/safe-to-spend.ts` 
 - Extensión de `qa/browser_e2e.py` para cubrir ambas capturas reales, su foco, las quince vistas y el reinicio; actualización del README para que describa las capacidades existentes, sin referencias antiguas al showcase reducido.
 
 **Límites aún visibles:** Chromium local no puede iniciar por `socket() Operation not permitted`, por lo que el script E2E de Python no se declaró ejecutado. Las correcciones nuevas requieren confirmación en el Preview del siguiente commit. Quedan para publicación definitiva: pruebas E2E automatizadas en un runner compatible, inspección de performance/a11y completa y enlace de retorno al portfolio cuando se conozca su URL canónica. No modificar `main` sin aprobación.
+
+### Checkpoint 6 — 2026-11-20 · profundidad funcional (en rama de desarrollo)
+
+- **Compras:** alta y edición de producto, cantidad/unidad y categoría; eliminación de la lista y deshacer. Los productos nuevos crean necesidades de hogar sin historial inicial: primer registro de compra, confianza baja y ausencia de fecha prevista hasta poder estimar. Se conserva el historial de compras aunque se quite un artículo de la lista.
+- **Películas y series:** películas nuevas con género, año, estado, calificación opcional, fecha y nota; editar/quitar; carteles ficticios más compactos. Series nuevas y temporadas adicionales con episodios, pausa/reanudación, edición y eliminación. Resumen recalculado desde los datos en memoria.
+- **Mazos:** de 3 mazos × 3 tarjetas a **7 mazos / 44 tarjetas** de ejemplo; creación de mazo con primera tarjeta, agregar/editar/eliminar tarjetas y mazos, invalidación del historial de la tarjeta editada, desplazamiento del historial de las tarjetas restantes cuando se elimina una.
+- **Registro global:** nuevos tipos de formulario para producto, película, serie, mazo y tarjeta; permanece el parser local acotado en el modo conversacional. Sin sincronización real, persistencia, FSRS ni APIs externas.
+- **QA local:** 71 pruebas Node pasan; se ampliaron pruebas de validación, altas/ediciones/eliminaciones, estado de compras, historial de mazos, datos no confiables y deshacer. Verificación del Preview de esta nueva revisión pendiente de publicación y comprobación observable.

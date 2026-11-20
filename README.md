@@ -12,12 +12,14 @@ Demo estática e independiente para visitantes del portfolio de Francisco Vitar.
 | --- | --- | --- |
 | Organización | Mi día, Tareas y hábitos, Proyectos, Agenda, Plan y logros | Completar tareas, registrar avances, revisar hitos, filtrar proyectos y explorar eventos |
 | Bienestar | Salud, Gimnasio, Nutrición | Registrar series, explorar progreso y benchmark ilustrativo, ver micronutrientes por cobertura y cambiar diario de comidas |
-| Aprendizaje | Mazos de estudio, Inglés, Centro de información | Calificar tarjetas, contestar preguntas, registrar sesiones y explorar ejemplos de lecturas, radar y automatizaciones |
-| Vida cotidiana | Finanzas, Compras, Películas | Simular capacidad de gasto, conciliar un extracto inventado, revisar reposición y llevar películas/series |
+| Aprendizaje | Mazos de estudio, Inglés, Centro de información | Repasar 7 mazos de ejemplo (44 tarjetas), crear/editar/eliminar mazos y tarjetas, practicar inglés y explorar piezas de información |
+| Vida cotidiana | Finanzas, Compras, Películas | Simular capacidad de gasto, agregar y marcar productos, aprender cadencias con historial, registrar películas, series, temporadas, comentarios y progreso |
 
 El **Centro de información** representa algunas capacidades de World, Inteligencia y automatizaciones con contenidos **ficticios y atemporales**: no presenta noticias, integraciones ni sincronizaciones reales. No replica el área Profesional personal. Los mazos usan un programador de repaso determinista y simplificado; **no** son una integración con Anki ni una implementación del FSRS del sistema original.
 
 Las acciones se pierden al recargar o presionar **Reiniciar demo**. Las gráficas, importes en ARS, métricas de salud, calorías, ejercicios, puntuaciones y supuestas rachas son ilustrativos. El contenido de nutrición, gimnasio, salud y finanzas no es asesoramiento profesional. Los nombres de películas y sus carteles gráficos son inventados.
+
+**Cómo registrar:** el botón «Registrar» ofrece interpretación local de frases para gimnasio, comida, gastos, tareas y algunas compras del hogar ya conocidas. La pestaña «Formulario» también permite crear **productos de compras**, **películas**, **series**, **mazos** y **tarjetas**, incluso sin escribir una frase. En sus secciones, los controles «Agregar», «Editar» y «Quitar» modifican el estado de la demo, con «Deshacer» y reinicio. Crear una serie permite sumar temporadas y episodios; se puede pausar y reanudar. Quitar un producto de la lista no elimina las compras históricas. Los artículos nuevos del hogar no tienen estimaciones de reposición hasta reunir compras suficientes: el sistema no inventa una frecuencia.
 
 Las ventanas de micronutrientes se calculan solo con días cerrados y alimentos con composición conocida; los umbrales no son indicaciones clínicas. El benchmark de fuerza y la rutina alternativa «V4» son **ejemplos diseñados para la demo**, no el benchmark ni la rutina personal del creador. En «Finanzas › Importar» solo se concilia un extracto ficticio integrado en el código: no admite documentos personales ni conecta bancos.
 
@@ -38,6 +40,7 @@ La interfaz implementa la dirección A aprobada en Claude Design (brief original
 | `logic.js` | Cálculos puros: progreso por área, deltas de salud, ritmo de presupuesto, macros, series del gimnasio. |
 | `modules.js`, `src/views/` | Plantillas de las vistas (sin acceso al DOM). |
 | `src/domain/` | Validaciones y cálculos puros de captura, salud, gimnasio, nutrición, finanzas y otros dominios. |
+| `src/domain/collections.js`, `src/views/collection-fields.js` | CRUD validado de compras, películas, series, mazos y tarjetas; formularios compartidos de registro y edición. |
 | `src/data/synthetic.js` | Datos sintéticos complementarios para los recorridos funcionales. |
 | `icons.js` | Iconografía propia (trazo 1.75). |
 | `app.js` | Estado en memoria, eventos, foco y anuncios accesibles. |

@@ -4,6 +4,7 @@
  */
 import { toGrams, validateFoodEntry } from './nutrition.js';
 import { validateSet } from './gym.js';
+import { saveCollection, validateCollection } from './collections.js';
 
 const MOMENT_TIME = { Desayuno: '08:30', 'Colación': '11:00', Almuerzo: '13:00', Merienda: '17:00', Cena: '21:00' };
 
@@ -20,6 +21,13 @@ const exerciseOf = (data, id) => {
 /** Normaliza y valida cualquier intención (de formulario o del intérprete). */
 export function validateIntent(data, intent) {
   switch (intent.kind) {
+    case 'shopping.item':
+    case 'media.movie':
+    case 'media.series':
+    case 'media.season':
+    case 'study.deck':
+    case 'study.card':
+      return validateCollection(data, intent.kind, intent);
     case 'gym.set': {
       const exercise = exerciseOf(data, intent.exerciseId);
       const sets = Number(intent.sets ?? 1);
@@ -64,6 +72,13 @@ export function validateIntent(data, intent) {
 /** Aplica una intención ya validada. Devuelve una descripción breve para el feedback. */
 export function applyIntent(data, intent) {
   switch (intent.kind) {
+    case 'shopping.item':
+    case 'media.movie':
+    case 'media.series':
+    case 'media.season':
+    case 'study.deck':
+    case 'study.card':
+      return saveCollection(data, intent.kind, intent);
     case 'gym.set': {
       const exercise = exerciseOf(data, intent.exerciseId);
       const sets = Number(intent.sets ?? 1);
