@@ -89,6 +89,7 @@ test('películas y series: altas, edición, validación, temporada, pausa y elim
   const film = { kind: 'media.movie', title: 'Viaje de prueba', genre: 'Aventura', year: '2026', status: 'watched', rating: '5', watchedOn: d.today, note: 'Buena puesta en escena' };
   assert.equal(validateIntent(d, { ...film, rating: '9' }).ok, false);
   assert.equal(validateIntent(d, { ...film, watchedOn: '2027-01-01' }).ok, false);
+  assert.equal(validateIntent(d, { ...film, watchedOn: '2026-02-31' }).ok, false);
   assert.equal(validateIntent(d, film).ok, true);
   applyIntent(d, film);
   const movie = d.movies.at(-1);

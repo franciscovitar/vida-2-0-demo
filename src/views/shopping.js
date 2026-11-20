@@ -29,7 +29,7 @@ function listTab(data) {
   const groups = [...new Set(data.shopping.map((i) => i.category))];
   return `
     <span class="bar bar-lg a-life" ${vars({ w: pct(data.shopping.length ? (checked / data.shopping.length) * 100 : 0) })}><span></span></span>
-    <div class="shop-grid">${groups.map((g, groupIndex) => `<section class="card" aria-labelledby="shop-group-${groupIndex}"><h2 id="shop-group-${groupIndex}" class="eyebrow">${esc(g)}</h2><ul class="check-list">${data.shopping.filter((i) => i.category === g).map((i) => `<li class="shop-item"><label class="check-row a-life ${i.checked ? 'is-done' : ''}"><input class="check-input" type="checkbox" data-shopping-check="${esc(i.id)}" ${i.checked ? 'checked' : ''}/><span class="check-box" aria-hidden="true">${icon('check', 14)}</span><span class="check-text"><span class="check-label">${esc(i.name)}</span>${i.needId ? '<span class="check-meta">Sugerido por reposición · al marcarlo se registra la compra</span>' : ''}</span><span class="muted">${esc(i.amount)}</span></label><div class="item-actions"><button type="button" class="link-btn" data-collection-edit="shopping.item|${esc(i.id)}">Editar</button><button type="button" class="link-btn" data-collection-remove="shopping.item|${esc(i.id)}">Quitar</button></div></li>`).join('')}</ul></section>`).join('')}</div>
+    <div class="shop-grid">${groups.map((g, groupIndex) => `<section class="card" aria-labelledby="shop-group-${groupIndex}"><h2 id="shop-group-${groupIndex}" class="eyebrow">${esc(g)}</h2><ul class="check-list">${data.shopping.filter((i) => i.category === g).map((i) => `<li class="shop-item"><label class="check-row a-life ${i.checked ? 'is-done' : ''}"><input class="check-input" type="checkbox" data-shopping-check="${esc(i.id)}" ${i.checked ? 'checked' : ''}/><span class="check-box" aria-hidden="true">${icon('check', 14)}</span><span class="check-text"><span class="check-label">${esc(i.name)}</span>${i.needId ? `<span class="check-meta">${data.household.needs.find((n) => n.id === i.needId)?.isDemoAdded ? 'Carga manual · al marcarlo se registra la compra' : 'Sugerido por reposición · al marcarlo se registra la compra'}</span>` : ''}</span><span class="muted">${esc(i.amount)}</span></label><div class="item-actions"><button type="button" class="link-btn" data-collection-edit="shopping.item|${esc(i.id)}">Editar</button><button type="button" class="link-btn" data-collection-remove="shopping.item|${esc(i.id)}">Quitar</button></div></li>`).join('')}</ul></section>`).join('')}</div>
     ${groups.length ? '' : '<p class="empty">Tu lista está vacía. Agregá el primer producto para empezar.</p>'}`;
 }
 
@@ -40,7 +40,7 @@ function restockTab(data) {
     <dl class="stat-strip">
       <div><dt>Para reponer ahora</dt><dd class="mono">${due}</dd></div>
       <div><dt>En observación</dt><dd class="mono">${rows.filter((r) => r.estimate.state === 'WATCH').length}</dd></div>
-      <div><dt>Productos con historial</dt><dd class="mono">${rows.length}</dd></div>
+      <div><dt>Productos seguidos</dt><dd class="mono">${rows.length}</dd></div>
     </dl>
     <ul class="restock-list">${rows.map(({ need, estimate: e, inList, lastPurchase, daysLeft, lastCorrection }) => `
       <li class="card restock is-${STATE[e.state].tone}">

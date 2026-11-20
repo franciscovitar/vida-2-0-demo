@@ -379,6 +379,7 @@ const submitHandlers = {
       ui.cardIndex = 0; ui.cardFlipped = false;
       render();
     }
+    panel.querySelector?.('button[data-collection-edit]')?.focus({ preventScroll: true });
   },
 };
 

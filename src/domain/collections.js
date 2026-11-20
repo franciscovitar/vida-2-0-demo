@@ -22,7 +22,8 @@ export function validateCollection(data, kind, raw) {
     if (kind === 'media.movie') {
       if (!['planned', 'watched'].includes(raw.status)) errors.status = 'Elegí un estado.';
       if (value(raw.rating) && (raw.status !== 'watched' || numeric(raw.rating, 1, 5, 'Calificación'))) errors.rating = 'Calificá de 1 a 5, solo si la viste.';
-      if (value(raw.watchedOn) && (!/^\d{4}-\d{2}-\d{2}$/.test(raw.watchedOn) || Number.isNaN(Date.parse(`${raw.watchedOn}T12:00:00Z`)) || raw.watchedOn > data.today || raw.status !== 'watched')) errors.watchedOn = 'Ingresá una fecha válida hasta hoy, para una película vista.';
+      const date = value(raw.watchedOn);
+      if (date && (!/^\d{4}-\d{2}-\d{2}$/.test(date) || Number.isNaN(Date.parse(`${date}T12:00:00Z`)) || new Date(`${date}T12:00:00Z`).toISOString().slice(0, 10) !== date || date > data.today || raw.status !== 'watched')) errors.watchedOn = 'Ingresá una fecha válida hasta hoy, para una película vista.';
     } else {
       addError(errors, 'minutesPerEpisode', numeric(raw.minutesPerEpisode, 5, 180, 'Minutos por episodio'));
       if (!raw.id) addError(errors, 'episodes', numeric(raw.episodes, 1, 60, 'Episodios de la primera temporada'));

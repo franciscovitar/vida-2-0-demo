@@ -162,6 +162,7 @@ export function addEpisode(data, seriesId) {
   const season = series?.seasons.find((s) => s.watched < s.episodes);
   if (!season) return null;
   season.watched += 1;
+  if (series.seasons.every((s) => s.watched === s.episodes)) series.paused = false;
   return `${series.title} T${season.n}E${season.watched}`;
 }
 

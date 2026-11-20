@@ -2,7 +2,7 @@
 import { esc, fieldError, icon } from './ui.js';
 
 const input = (name, label, raw, attrs = '', errors = {}) => `<label class="field"><span>${label}</span><input name="${name}" value="${esc(raw ?? '')}" ${attrs}/>${fieldError(errors, name)}</label>`;
-const area = (name, label, raw, errors = {}) => `<label class="field editor-wide"><span>${label}</span><textarea name="${name}" rows="2" maxlength="600">${esc(raw ?? '')}</textarea>${fieldError(errors, name)}</label>`;
+const area = (name, label, raw, errors = {}) => `<label class="field editor-wide"><span>${label}</span><textarea name="${name}" rows="2" maxlength="${name === 'note' || name === 'front' ? 240 : 600}">${esc(raw ?? '')}</textarea>${fieldError(errors, name)}</label>`;
 const select = (name, label, choices, current) => `<label class="field"><span>${label}</span><select name="${name}">${choices.map(([id, label]) => `<option value="${esc(id)}" ${String(id) === String(current) ? 'selected' : ''}>${esc(label)}</option>`).join('')}</select></label>`;
 
 export const COLLECTION_KINDS = {
