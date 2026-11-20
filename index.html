@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#f6f8fc" />
+    <meta name="description" content="Explorá Vida 2.0: organización, bienestar, aprendizaje y vida cotidiana en un mismo espacio. Demo interactiva con datos ficticios." />
+    <meta name="robots" content="noindex, nofollow" />
+    <meta property="og:title" content="Vida 2.0 — Demo pública" />
+    <meta property="og:description" content="Una demo interactiva para organizar el día, cuidar hábitos, aprender y llevar las finanzas. Sin cuentas, con datos ficticios." />
+    <title>Vida 2.0 — Demo pública</title>
+    <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+    <link rel="stylesheet" href="./styles.css" />
+    <script type="module" src="./app.js"></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#contenido">Saltar al contenido</a>
+    <div class="demo-banner" role="note">
+      <span class="banner-dot" aria-hidden="true"></span>
+      <strong>DEMO PÚBLICA</strong>
+      <span class="banner-divider" aria-hidden="true"></span>
+      Datos ficticios · Sin cuentas · Sin integraciones externas
+    </div>
+
+    <div class="app-shell">
+      <aside class="sidebar" aria-label="Navegación principal">
+        <a class="brand" href="#hoy" aria-label="Vida 2.0, ir al inicio">
+          <span class="brand-mark" aria-hidden="true">v<span>2</span></span>
+          <span class="brand-copy"><strong>vida<span class="brand-period">.</span>2.0</strong><small>ORGANIZÁ TU VIDA EN UN LUGAR</small></span>
+        </a>
+
+        <nav class="main-nav" aria-label="Secciones de la demo">
+          <div class="nav-group"><div class="sidebar-kicker">ORGANIZACIÓN</div>
+            <button class="nav-item is-active" data-tab="hoy" aria-current="page" type="button"><span class="nav-icon" data-icon="grid"></span><span>Mi día</span></button>
+            <button class="nav-item" data-tab="proyectos" type="button"><span class="nav-icon" data-icon="layers"></span><span>Proyectos</span></button>
+            <button class="nav-item" data-tab="agenda" type="button"><span class="nav-icon" data-icon="calendar"></span><span>Agenda</span></button>
+          </div>
+          <div class="nav-group"><div class="sidebar-kicker">BIENESTAR</div>
+            <button class="nav-item" data-tab="salud" type="button"><span class="nav-icon" data-icon="heart"></span><span>Salud</span></button>
+            <button class="nav-item" data-tab="gimnasio" type="button"><span class="nav-icon" data-icon="activity"></span><span>Gimnasio</span></button>
+            <button class="nav-item" data-tab="nutricion" type="button"><span class="nav-icon" data-icon="utensils"></span><span>Nutrición</span></button>
+          </div>
+          <div class="nav-group"><div class="sidebar-kicker">APRENDIZAJE</div>
+            <button class="nav-item" data-tab="mazos" type="button"><span class="nav-icon" data-icon="book"></span><span>Mazos de estudio</span></button>
+            <button class="nav-item" data-tab="ingles" type="button"><span class="nav-icon" data-icon="languages"></span><span>Inglés</span></button>
+          </div>
+          <div class="nav-group"><div class="sidebar-kicker">VIDA COTIDIANA</div>
+            <button class="nav-item" data-tab="finanzas" type="button"><span class="nav-icon" data-icon="wallet"></span><span>Finanzas</span></button>
+            <button class="nav-item" data-tab="compras" type="button"><span class="nav-icon" data-icon="basket"></span><span>Compras</span></button>
+            <button class="nav-item" data-tab="peliculas" type="button"><span class="nav-icon" data-icon="film"></span><span>Películas</span></button>
+          </div>
+        </nav>
+        <label class="mobile-module-picker" for="mobile-nav">EXPLORÁ UN MÓDULO
+          <select id="mobile-nav" aria-label="Elegir sección de la demo">
+            <optgroup label="Organización"><option value="hoy">Mi día</option><option value="proyectos">Proyectos</option><option value="agenda">Agenda</option></optgroup>
+            <optgroup label="Bienestar"><option value="salud">Salud</option><option value="gimnasio">Gimnasio</option><option value="nutricion">Nutrición</option></optgroup>
+            <optgroup label="Aprendizaje"><option value="mazos">Mazos de estudio</option><option value="ingles">Inglés</option></optgroup>
+            <optgroup label="Vida cotidiana"><option value="finanzas">Finanzas</option><option value="compras">Compras</option><option value="peliculas">Películas</option></optgroup>
+          </select>
+        </label>
+
+        <div class="sidebar-bottom">
+          <div class="demo-note"><span class="demo-note-icon" data-icon="shield"></span><div><strong>Entorno aislado</strong><p>Todo ocurre en este navegador. Nada se guarda ni se envía.</p></div></div>
+          <div class="profile"><span class="avatar" aria-hidden="true">AR</span><div><strong>Alex Rivera</strong><span>Perfil ficticio</span></div><span class="profile-more" aria-hidden="true">···</span></div>
+        </div>
+      </aside>
+
+      <div class="workspace">
+        <header class="topbar">
+          <div class="breadcrumbs"><span>ESPACIO PERSONAL</span><span class="breadcrumb-chevron" aria-hidden="true">/</span><strong id="breadcrumb-current">Mi día</strong></div>
+          <div class="topbar-actions"><span class="live-indicator"><span aria-hidden="true"></span> Modo visitante</span><button class="reset-button" type="button" data-action="reset"><span data-icon="refresh"></span> Reiniciar demo</button></div>
+        </header>
+
+        <main id="contenido" tabindex="-1">
+          <section class="intro" aria-labelledby="intro-title">
+            <div class="intro-copy"><div class="eyebrow"><span class="eyebrow-line" aria-hidden="true"></span> CONOCÉ VIDA 2.0</div><h1 id="intro-title">Todo lo que importa.<br /><em>En un mismo lugar.</em></h1><p>Organizá tu día, cuidá tu bienestar, aprendé y llevá tus finanzas. Explorá el producto con una vida de ejemplo, sin registrarte ni conectar tus cuentas.</p></div>
+            <div class="intro-badge"><span data-icon="sparkles"></span><div><small>UNA EXPERIENCIA DE</small><strong>Francisco Vitar</strong><span>Software Developer · Full-Stack</span></div></div>
+          </section>
+
+          <section id="panel" class="content-panel" aria-label="Contenido de la sección"></section>
+
+          <footer class="footer"><div><span class="footer-mark">v2</span><span>Una demo de interfaz basada en Vida 2.0. Los datos, métricas y acciones son simulados.</span></div><a href="https://github.com/franciscovitar/vida-2.0" target="_blank" rel="noopener noreferrer">Ver proyecto original <span aria-hidden="true">↗</span></a></footer>
+        </main>
+      </div>
+    </div>
+    <div id="announcement" class="sr-only" role="status" aria-live="polite"></div>
+  </body>
+</html>

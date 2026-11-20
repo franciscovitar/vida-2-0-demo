@@ -1,0 +1,8 @@
+{
+  "name": "vida-2-0-portfolio-demo",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test demo.test.mjs"
+  }
+}
