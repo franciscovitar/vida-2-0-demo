@@ -6,6 +6,8 @@ export const initialData = Object.freeze({
   persona: 'Alex',
   dateLabel: 'MARTES, 17 DE NOVIEMBRE DE 2026',
   focus: 'Preparar la presentación de un producto digital',
+  /** Escenario fijo de la demo: no se usa el reloj del dispositivo. */
+  demoClock: { time: '10:12', dayOfMonth: 17, daysInMonth: 30 },
   habits: [
     { id: 'lectura', label: 'Leer 20 minutos', detail: 'Aprendizaje', done: true, color: 'violet' },
     { id: 'movimiento', label: 'Salir a caminar', detail: 'Bienestar', done: true, color: 'green' },
@@ -42,6 +44,7 @@ export const initialData = Object.freeze({
     sleepTrend: [6.8, 7.1, 7.3, 6.9, 7.8, 7.5, 7.6],
     stepsTrend: [6800, 7900, 7200, 9300, 8300, 6400, 8240],
     activityTrend: [24, 38, 46, 31, 52, 20, 42],
+    trendLabels: ['Mié', 'Jue', 'Vie', 'Sáb', 'Dom', 'Lun', 'Hoy'],
   },
   gym: {
     completed: false,
@@ -107,6 +110,7 @@ export const initialData = Object.freeze({
       { id: 'other', name: 'Otros', budget: 170000, spent: 68000, color: 'violet' },
     ],
     months: [780, 810, 760, 930, 845, 886],
+    monthLabels: ['Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov'],
   },
   shopping: [
     { id: 'apples', name: 'Manzanas', category: 'Verdulería', amount: '1 kg', checked: false },

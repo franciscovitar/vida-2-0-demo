@@ -19,7 +19,28 @@ La demo **no implementa** la categoría World ni el área Profesional. En la hom
 
 Las acciones se pierden al recargar o presionar **Reiniciar demo**. Las gráficas, importes en ARS, métricas de salud, calorías, ejercicios, puntuaciones y supuestas rachas son ilustrativos. El contenido de nutrición, gimnasio, salud y finanzas no es asesoramiento profesional. Los nombres de películas y sus carteles gráficos son inventados.
 
-El enfoque visual para la siguiente iteración con Claude Design está en [DESIGN_BRIEF_CLAUDE.md](./DESIGN_BRIEF_CLAUDE.md).
+## Diseño: dirección «Claridad»
+
+La interfaz implementa la dirección A aprobada en Claude Design (brief original en [DESIGN_BRIEF_CLAUDE.md](./DESIGN_BRIEF_CLAUDE.md)):
+
+- **Hoy** como portada: foco del día, agenda con hora fija de la demo (10:12), hábitos y «Tu día en cuatro áreas», que suma cada tarea y hábito al área a la que pertenece.
+- **Cuatro áreas** con color propio: Organizar (Tareas y hábitos, Proyectos, Agenda), Cuidarme (Salud, Gimnasio, Nutrición), Aprender (Mazos, Inglés) y Vivir (Finanzas, Compras, Películas).
+- Desktop: barra lateral + selector «Ir a» (Ctrl/⌘ K). Tablet y mobile: barra inferior de 5 pestañas y segmentos por área.
+- Toda cifra visible se calcula desde `data.js` (ver `logic.js`); no hay tendencias ni relaciones inventadas.
+
+## Estructura
+
+| Archivo | Rol |
+| --- | --- |
+| `data.js` | Datos ficticios (incluye la hora y el día fijos de la demo y las etiquetas de las series). |
+| `logic.js` | Cálculos puros: progreso por área, deltas de salud, ritmo de presupuesto, macros, series del gimnasio. |
+| `modules.js` | Plantillas de las 12 vistas (sin acceso al DOM). |
+| `icons.js` | Iconografía propia (trazo 1.75). |
+| `app.js` | Estado en memoria, eventos, foco y anuncios accesibles. |
+| `styles.css` | Sistema visual: tokens, componentes y responsive. |
+| `fonts/` | Geist y Geist Mono autoalojadas (licencia SIL OFL 1.1 en `fonts/OFL-LICENSE.txt`). |
+
+Los valores dinámicos (anchos de barras, alturas) se aplican como variables CSS mediante CSSOM, de modo que la CSP `style-src 'self'` sigue sin permitir estilos en línea.
 
 ## Límite de seguridad
 
