@@ -49,10 +49,10 @@ def check(page, url, width, errors, requests):
     assert "Recorrido guiado · 2 de 3" in page.locator(".recruiter-guide").text_content()
     assert page.locator("#mobile-nav").input_value() == "finanzas"
     assert "Supermercado" in page.locator("#panel").inner_text()
-    page.locator('[data-tour="next"]').click()
+    page.locator('.recruiter-guide [data-tour="next"]').click()
     assert page.locator("#mobile-nav").input_value() == "sistema"
     assert "El desafío detrás del producto" in page.locator("#panel").inner_text()
-    page.locator('[data-tour="next"]').click()
+    page.locator('.recruiter-guide [data-tour="next"]').click()
     assert page.locator(".recruiter-guide").count() == 0
 
     page.locator("#mobile-nav").select_option("nutricion")
