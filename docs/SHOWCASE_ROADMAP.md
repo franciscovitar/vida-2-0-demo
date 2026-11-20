@@ -190,3 +190,9 @@ Investigado en el original antes de implementar: `lib/finance/safe-to-spend.ts` 
 - **QA local:** 71 pruebas Node pasan; se ampliaron pruebas de validación, altas/ediciones/eliminaciones, estado de compras, historial de mazos, datos no confiables y deshacer.
 - **QA de Preview observado:** commit `7aa7771` en Vercel `READY`. Chrome: alta de mazo + tarjeta, producto + compra, película vista con calificación y nota, serie con episodios. Resumen actualizado de películas; en 390 px, Mazos, Compras y Películas no presentaron overflow horizontal (`scrollWidth = clientWidth = 375` con barra de scroll). Consola sin errores reportados durante ese recorrido. Se corrigieron después mensajes engañosos de productos manuales, gramática singular, límites de texto y fechas: verificar el Preview del commit posterior para certificar estos retoques.
 - **QA responsive adicional:** en 722 px se detectó que la barra superior comprimía sus controles aun sin overflow. Se ocultaron el atajo visual, el botón de registro duplicado y el texto del reinicio en 721–840 px; el acceso a Registrar continúa mediante el botón flotante. La nueva versión queda sujeta a una última prueba visual de ese ancho.
+
+### Checkpoint 7 — 2026-11-20 · ajuste visual solicitado de películas
+
+- **Problema observado por el usuario:** las cuatro portadas de colores dominaban la pantalla de películas, con poco contenido útil y acciones relegadas bajo cada bloque. El listado de series resultaba más claro y denso.
+- **Solución:** fichas horizontales compactas de películas con carátula abstracta pequeña, título, género, estado, calificación directa por estrellas, comentario y acciones contiguas. Cuadrícula de dos columnas en desktop y una columna en móvil, sin cambiar la edición detallada ni los filtros.
+- **QA de lógica y plantilla:** 72 pruebas Node, incluida la actualización del promedio de películas al calificar y el deshacer. QA visual del Preview del commit correspondiente pendiente.

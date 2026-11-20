@@ -383,6 +383,22 @@ test('películas muestra conteos en los filtros y conserva la calificación orig
   assert.match(ui.panel.innerHTML, /Vistas <span class="mono">2<\/span>/);
 });
 
+test('películas: fichas compactas y calificación directa actualizan el resumen con deshacer', () => {
+  ui.click({ action: 'reset' });
+  ui.click({ tab: 'peliculas' });
+  assert.match(ui.panel.innerHTML, /class="card movie film-card"/);
+  assert.match(ui.panel.innerHTML, /Calificar película Horizonte azul/);
+  assert.match(ui.panel.innerHTML, /Marcar como vista/);
+  ui.click({ movieRate: 'atlas:5' });
+  assert.equal(app.__test.data.movies.find((m) => m.id === 'atlas').rating, null, 'no se califica algo pendiente');
+  ui.click({ movieRate: 'horizon:5' });
+  assert.equal(app.__test.data.movies.find((m) => m.id === 'horizon').rating, 5);
+  ui.click({ mediaTab: 'summary' });
+  assert.match(ui.panel.innerHTML, /4,8<small>\/5/);
+  app.__test.undo();
+  assert.equal(app.__test.data.movies.find((m) => m.id === 'horizon').rating, 4);
+});
+
 test('los cálculos derivan solo de los datos ficticios', () => {
   const deltas = logic.healthDeltas(initialData);
   assert.equal(deltas.sleep.toFixed(2), '0.31');

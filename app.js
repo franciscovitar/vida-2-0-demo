@@ -529,6 +529,17 @@ const clickHandlers = {
   financeMode: (value) => { ui.financeMode = value; render(); },
   systemMode: (value) => { ui.systemMode = value; render(); },
   moviesFilter: (value) => { ui.moviesFilter = value; render(); announce(`Películas: ${value}`); },
+  movieRate: (value) => {
+    const [id, raw] = value.split(':');
+    const rating = Number(raw);
+    if (!Number.isInteger(rating) || rating < 1 || rating > 5) return;
+    commit('Calificación de película actualizada', (draft) => {
+      const movie = draft.movies.find((m) => m.id === id);
+      if (!movie?.watched) return false;
+      movie.rating = movie.rating === rating ? null : rating;
+      movie.savedRating = movie.rating;
+    });
+  },
   movieToggle: (value) => {
     commit('Estado de película actualizado', (draft) => {
       const movie = draft.movies.find((m) => m.id === value);

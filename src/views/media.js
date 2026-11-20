@@ -20,13 +20,15 @@ function films(data, ui) {
   return `
     <div class="chips" role="group" aria-label="Filtrar películas">${options.map(([o, n]) => `<button type="button" class="chip-btn" data-movies-filter="${o}" aria-pressed="${ui.moviesFilter === o}">${o} <span class="mono">${n}</span></button>`).join('')}</div>
     <div class="movie-grid">${visible.map((m) => `
-      <article class="movie">
-        <div class="poster poster-${m.color}" aria-hidden="true"><span class="mono">${m.year}</span><strong>${esc(m.title)}</strong></div>
-        <h2 class="sr-only">${esc(m.title)}</h2>
-        <p class="muted small">${esc(m.genre)} · ${m.watched ? (m.rating ? `${m.rating}/5` : 'vista sin calificar') : 'por ver'}${m.watchedOn ? ` · ${esc(m.watchedOn)}` : ''}</p>
-        ${m.note ? `<p class="small movie-note">${esc(m.note)}</p>` : ''}
-        <button type="button" class="btn ${m.watched ? 'btn-life' : 'btn-outline'} btn-block" data-movie-toggle="${esc(m.id)}" aria-pressed="${m.watched}">${m.watched ? `${icon('check', 16)} Vista` : 'Marcar como vista'}</button>
-        <div class="item-actions"><button type="button" class="link-btn" data-collection-edit="media.movie|${esc(m.id)}">Editar ficha</button><button type="button" class="link-btn" data-collection-remove="media.movie|${esc(m.id)}">Quitar</button></div>
+      <article class="card movie film-card" aria-labelledby="film-${esc(m.id)}">
+        <div class="poster poster-${m.color} film-art" aria-hidden="true"><span class="mono">${m.year}</span><span class="film-symbol">${esc(m.symbol ?? '✧')}</span></div>
+        <div class="film-body">
+          <div class="film-top"><div><h2 id="film-${esc(m.id)}">${esc(m.title)}</h2><p class="muted small">${esc(m.genre)} · ${m.watched ? (m.rating ? `${m.rating}/5` : 'sin calificar') : 'por ver'}</p></div><span class="state-pill is-${m.watched ? 'add' : 'idle'}">${m.watched ? 'Vista' : 'Pendiente'}</span></div>
+          ${m.watchedOn ? `<p class="muted small">Vista el ${esc(m.watchedOn)}</p>` : ''}
+          ${m.note ? `<p class="small movie-note">${esc(m.note)}</p>` : ''}
+          ${m.watched ? `<div class="film-rating"><span class="muted small">Tu calificación</span><span class="stars" role="group" aria-label="Calificar película ${esc(m.title)}">${[1, 2, 3, 4, 5].map((r) => `<button type="button" class="star ${m.rating >= r ? 'is-on' : ''}" data-movie-rate="${esc(m.id)}:${r}" aria-label="${r} de 5" aria-pressed="${m.rating === r}">★</button>`).join('')}</span></div>` : ''}
+          <div class="film-actions"><button type="button" class="btn btn-outline btn-sm" data-movie-toggle="${esc(m.id)}" aria-pressed="${m.watched}">${m.watched ? 'Volver a pendientes' : `${icon('check', 15)} Marcar como vista`}</button><button type="button" class="chip-btn chip-sm" data-collection-edit="media.movie|${esc(m.id)}">Editar</button><button type="button" class="chip-btn chip-sm" data-collection-remove="media.movie|${esc(m.id)}">Quitar</button></div>
+        </div>
       </article>`).join('')}
     </div>
     ${visible.length ? '' : '<p class="empty">No hay películas en este filtro.</p>'}`;
