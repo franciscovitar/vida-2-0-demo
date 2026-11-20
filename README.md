@@ -11,13 +11,15 @@ Demo estática e independiente para visitantes del portfolio de Francisco Vitar.
 | Área | Vistas de la demo | Lo que puede probar el visitante |
 | --- | --- | --- |
 | Organización | Mi día, Proyectos, Agenda | Completar tareas y hábitos; filtrar proyectos; cambiar días y ver eventos |
-| Bienestar | Salud, Gimnasio, Nutrición | Comparar indicadores ficticios; completar una sesión; cambiar diario de comidas |
-| Aprendizaje | Mazos de estudio, Inglés | Elegir un mazo, revelar tarjetas; contestar preguntas con feedback |
-| Vida cotidiana | Finanzas, Compras, Películas | Explorar presupuestos ficticios; marcar productos; filtrar y marcar películas |
+| Bienestar | Salud, Gimnasio, Nutrición | Registrar series, explorar progreso y benchmark ilustrativo, ver micronutrientes por cobertura y cambiar diario de comidas |
+| Aprendizaje | Mazos de estudio, Inglés | Calificar tarjetas, contestar preguntas, consultar el perfil de práctica y registrar sesiones |
+| Vida cotidiana | Finanzas, Compras, Películas | Simular capacidad de gasto, conciliar un extracto inventado, revisar reposición y llevar películas/series |
 
 La demo **no implementa** la categoría World ni el área Profesional. En la home se menciona que la aplicación original incluye seguimiento de herramientas, tecnologías y actualidad, sin mostrar noticias o sincronizaciones en vivo. Los mazos son un ejemplo de repaso manual, no una integración con Anki ni un planificador de repetición espaciada.
 
 Las acciones se pierden al recargar o presionar **Reiniciar demo**. Las gráficas, importes en ARS, métricas de salud, calorías, ejercicios, puntuaciones y supuestas rachas son ilustrativos. El contenido de nutrición, gimnasio, salud y finanzas no es asesoramiento profesional. Los nombres de películas y sus carteles gráficos son inventados.
+
+Las ventanas de micronutrientes se calculan solo con días cerrados y alimentos con composición conocida; los umbrales no son indicaciones clínicas. El benchmark de fuerza y la rutina alternativa «V4» son **ejemplos diseñados para la demo**, no el benchmark ni la rutina personal del creador. En «Finanzas › Importar» solo se concilia un extracto ficticio integrado en el código: no admite documentos personales ni conecta bancos.
 
 ## Diseño: dirección «Claridad»
 
@@ -66,6 +68,8 @@ Pruebas (Node.js 22 o superior, sin instalar dependencias):
 ```bash
 npm test
 ```
+
+El recorrido opcional en un navegador real está en `qa/browser_e2e.py`: requiere Python Playwright y Chromium instalados en el entorno de QA, sin convertirse en dependencias del sitio. Probá `python3 qa/browser_e2e.py` donde Chromium pueda iniciarse. El estado de esta verificación figura en [el roadmap](./docs/SHOWCASE_ROADMAP.md).
 
 ## Publicación en Vercel
 

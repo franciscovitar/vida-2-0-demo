@@ -6,6 +6,51 @@ import { applyIntent, editSet, togglePlannedSet, validateIntent } from './src/do
 import { parseCapture } from './src/domain/capture.js';
 import { compare, e1rmSeries, epley, lastComparable, sessionSummary, validateSet, weeklyVolume } from './src/domain/gym.js';
 import { dailySeries, energyStatus, macroShares, toGrams, totals, validateFoodEntry } from './src/domain/nutrition.js';
+import { microDay, microWindow } from './src/domain/nutrition.js';
+import { strengthBenchmark, trendEta } from './src/domain/gym.js';
+import { EXAMPLE_STATEMENT, applyExampleImport, preflightStatement } from './src/domain/importer.js';
+
+test('micronutrientes: 7D sin evidencia suficiente, 14D con señales y desconocido excluido', () => {
+  const d = fresh();
+  const days = [...d.nutrition.history, ...d.nutrition.days.map((x) => ({ ...x, items: x.meals }))];
+  const recent = microWindow(days, d.nutrition.catalog, d.today, 7);
+  assert.equal(recent.signals.length, 0);
+  assert.ok(recent.nutrients.every((n) => n.evaluable === 2));
+  const fortnight = microWindow(days, d.nutrition.catalog, d.today, 14);
+  assert.deepEqual(fortnight.signals.map((n) => n.id), ['calcium', 'potassium', 'vitaminC', 'vitaminD']);
+  assert.ok(fortnight.nutrients.every((n) => n.evaluable === 6));
+  assert.equal(microDay(days.find((x) => x.date === '2026-11-15'), d.nutrition.catalog, 'calcium'), null, 'una empanada sin composición no equivale a cero');
+  assert.equal(microDay(days.at(-1), d.nutrition.catalog, 'calcium'), null, 'día abierto');
+  assert.throws(() => microWindow(days, d.nutrition.catalog, d.today, 42), RangeError);
+});
+
+test('benchmark: niveles ficticios, barra entre umbrales y ETA sólo con tendencia fiable', () => {
+  const d = fresh();
+  const series = e1rmSeries(withMeta(d.gym), 'press', [], d.today);
+  const b = strengthBenchmark('press', series);
+  assert.deepEqual([b.level, b.nextLevel, b.next, b.progress], ['Intermedio', 'Avanzado', 54, 15]);
+  assert.ok(b.eta.days > 0 && b.eta.r2 > 0.7);
+  assert.equal(strengthBenchmark('plank', series), null, 'sin umbrales en ejercicios por tiempo');
+  assert.equal(trendEta(series.slice(-3), 54), null, '3 sesiones no justifican una proyección');
+  assert.equal(trendEta(series.map((x) => ({ ...x, e1rm: 40 })), 54), null, 'sin progreso medible no hay ETA');
+});
+
+test('importación sintética: preflight, conciliación idempotente y exclusión económica de transferencias', () => {
+  const d = fresh();
+  const first = preflightStatement(EXAMPLE_STATEMENT, d.finances);
+  assert.equal(first.ok, true);
+  assert.deepEqual(['candidate', 'duplicate', 'review', 'invalid'].map((s) => first.rows.filter((r) => r.status === s).length), [4, 2, 1, 1]);
+  const initial = d.finances.planning.liquidity;
+  assert.equal(applyExampleImport(d), 4);
+  assert.equal(d.finances.planning.liquidity, initial - 25000 + 3500);
+  assert.equal(d.finances.movements.length, 2);
+  assert.equal(d.finances.ledger.filter((m) => m.kind === 'transfer').length, 3);
+  assert.equal(applyExampleImport(d), 0, 'un reintento exacto no duplica movimientos');
+  assert.equal(preflightStatement(EXAMPLE_STATEMENT, d.finances).eligible, 0);
+  const conflict = EXAMPLE_STATEMENT.replace('EX-002\n2026-11-13', 'EX-004\n2026-11-13');
+  assert.ok(preflightStatement(conflict, d.finances).rows.some((r) => r.reason.includes('Referencia importada con datos distintos')));
+  assert.equal(preflightStatement('bad;header\n2026-11-01;X;123;expense;food;X', d.finances).ok, false);
+});
 import { withMeta } from './src/views/gym.js';
 import { esc } from './src/views/ui.js';
 

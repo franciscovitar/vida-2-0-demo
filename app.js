@@ -3,6 +3,7 @@ import { icon } from './icons.js';
 import { LABELS, areaOfTab, parseExercise } from './logic.js';
 import { moduleView } from './modules.js';
 import { validateAchievement, validateReview, weekSnapshot } from './src/domain/planning.js';
+import { applyExampleImport, EXAMPLE_STATEMENT, preflightStatement } from './src/domain/importer.js';
 import { addAchievement, addEnglishCard, addEnglishSession, addEpisode, addRestockToList, addReview, toggleMilestone, updateContinuity, applyIntent, editSet, rateSeason, recordCorrection, recordPurchase, togglePlannedSet, validateIntent } from './src/domain/actions.js';
 import { checkAnswer, schedule } from './src/domain/study.js';
 import { CAPTURE_EXAMPLES, parseCapture } from './src/domain/capture.js';
@@ -20,7 +21,7 @@ const initialUi = Object.freeze({
   selectedDay: 0, selectedEvent: 'plan',
   healthMetric: 'sleep', healthTab: 'summary', healthScore: '',
   gymTab: 'hoy', gymExercise: 'press', gymEdit: '',
-  nutritionDay: 0, nutritionTab: 'hoy', mealOpen: '',
+  nutritionDay: 0, nutritionTab: 'hoy', nutritionWindow: 28, mealOpen: '',
   deck: 'web', cardIndex: 0, cardFlipped: false, cardKnown: 0, cardAgain: 0,
   englishIndex: 0, englishAnswer: '', englishPracticed: false,
   financeCategory: 'home', financeMode: 'left', financeTab: 'budget', purchase: null, movementFilter: 'all',
@@ -389,6 +390,10 @@ const clickHandlers = {
   healthTab: (value) => { ui.healthTab = value; render(); },
   healthScore: (value) => { ui.healthScore = value; render(); },
   financeTab: (value) => { ui.financeTab = value; render(); },
+  financeImport: () => {
+    if (!preflightStatement(EXAMPLE_STATEMENT, data.finances).eligible) return;
+    commit('Importación de ejemplo conciliada', (draft) => applyExampleImport(draft) > 0);
+  },
   movementFilter: (value) => { ui.movementFilter = value; render(); },
   shoppingTab: (value) => { ui.shoppingTab = value; render(); },
   restockAdd: (value) => commit('Agregado a la lista de compras', (draft) => addRestockToList(draft, value)),
@@ -435,6 +440,7 @@ const clickHandlers = {
   },
   nutritionDay: (value) => { ui.nutritionDay = Number(value); ui.mealOpen = ''; render(); announce(`Comidas de ${data.nutrition.days[ui.nutritionDay].label}`); },
   nutritionTab: (value) => { ui.nutritionTab = value; render(); },
+  nutritionWindow: (value) => { ui.nutritionWindow = Number(value); render(); },
   foodRemove: (value) => commit('Alimento quitado', (draft) => { draft.nutrition.days[0].meals = draft.nutrition.days[0].meals.filter((m) => m.id !== value); }),
   meal: (value) => { ui.mealOpen = ui.mealOpen === value ? '' : value; render(); },
   deck: (value) => {

@@ -1,6 +1,7 @@
 /** Vista Finanzas: presupuesto, capacidad (Safe-to-Spend + simulador), movimientos y resiliencia. */
 import { financeSummary, formatMoney } from '../../logic.js';
 import { coverageMonths, economicSummary, purchaseScenario, resilience, safeToSpend } from '../domain/finance.js';
+import { EXAMPLE_STATEMENT, preflightStatement } from '../domain/importer.js';
 import { esc, fieldError, icon, note, pageHead, pct, shortDate, tabs, vars } from './ui.js';
 
 const pctText = (v) => `${Math.round(v * 100)} %`;
@@ -119,11 +120,27 @@ function resilienceTab(data) {
     </section>`;
 }
 
+function importarTab(data) {
+  const preview = preflightStatement(EXAMPLE_STATEMENT, data.finances);
+  const counts = (status) => preview.rows.filter((r) => r.status === status).length;
+  const names = { candidate: 'Incorporar', duplicate: 'Duplicado', review: 'Revisión', invalid: 'Inválido' };
+  return `<section class="card" aria-labelledby="import-title">
+    <div class="card-head"><div><p class="eyebrow a-life">Preflight + conciliación</p><h2 id="import-title">Extracto de prueba · 8 filas</h2></div><span class="tag">100 % simulado</span></div>
+    <p class="muted">Esta muestra local reproduce la secuencia de un importador real: leer, validar, clasificar, detectar duplicados y confirmar. No podés subir extractos reales desde esta demo.</p>
+    <dl class="stat-strip import-stats"><div><dt>Candidatos</dt><dd class="mono">${counts('candidate')}</dd></div><div><dt>Duplicados</dt><dd class="mono">${counts('duplicate')}</dd></div><div><dt>Revisar</dt><dd class="mono">${counts('review')}</dd></div><div><dt>Inválidos</dt><dd class="mono">${counts('invalid')}</dd></div></dl>
+    <div class="table-wrap"><table class="data-table"><thead><tr><th scope="col">Fecha / ref.</th><th scope="col">Detalle</th><th scope="col">Importe</th><th scope="col">Conciliación</th></tr></thead><tbody>
+      ${preview.rows.map((r) => `<tr><td class="mono">${esc(r.date)}<small class="micro-ref muted">${esc(r.reference)}</small></td><td>${esc(r.description)}<small class="micro-ref muted">${esc(r.reason)}</small></td><td class="mono">${formatMoney(Number.isSafeInteger(r.amount) ? Math.abs(r.amount) : 0)}</td><td><span class="state-pill ${r.status === 'candidate' ? 'is-add' : r.status === 'duplicate' ? '' : 'is-watch'}">${names[r.status]}</span></td></tr>`).join('')}
+    </tbody></table></div>
+    <div class="import-action"><p class="muted small">Las filas ambiguas o inválidas quedan fuera. Las transferencias propias se registran sin computar ingreso ni gasto. Podés deshacer la importación.</p>
+      <button type="button" class="btn btn-dark" data-finance-import="example" ${preview.eligible ? '' : 'disabled'}>${preview.eligible ? `Confirmar ${preview.eligible} movimientos` : 'Todo conciliado'}</button></div>
+  </section>${note('El botón trabaja únicamente sobre datos sintéticos en memoria. Repetir la importación no genera duplicados; «Reiniciar demo» restaura el extracto de muestra.')}`;
+}
+
 export function financeView(data, ui) {
   const f = financeSummary(data);
   const tab = ui.financeTab;
   return `${pageHead(`Noviembre · día ${data.demoClock.dayOfMonth} de ${data.demoClock.daysInMonth}`, 'Tu dinero, más claro.', '')}
-    ${tabs('finance-tab', tab, [['budget', 'Presupuesto'], ['capacity', 'Capacidad'], ['movements', 'Movimientos'], ['resilience', 'Resiliencia']])}
-    ${tab === 'capacity' ? capacityTab(data, ui) : tab === 'movements' ? movementsTab(data, ui, f) : tab === 'resilience' ? resilienceTab(data) : budgetTab(data, ui, f)}
+    ${tabs('finance-tab', tab, [['budget', 'Presupuesto'], ['capacity', 'Capacidad'], ['movements', 'Movimientos'], ['import', 'Importar'], ['resilience', 'Resiliencia']])}
+    ${tab === 'capacity' ? capacityTab(data, ui) : tab === 'movements' ? movementsTab(data, ui, f) : tab === 'import' ? importarTab(data) : tab === 'resilience' ? resilienceTab(data) : budgetTab(data, ui, f)}
     ${note('Importes totalmente ficticios y orientados a demostración. No hay conexión con bancos ni asesoramiento financiero.')}`;
 }

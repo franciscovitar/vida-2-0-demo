@@ -37,7 +37,30 @@ export const EXERCISE_META = Object.freeze({
 
 /* ───────────── Nutrición: catálogo ficticio por 100 g ───────────── */
 
-const food = (id, name, per100, portions, aliases = []) => ({ id, name, per100, portions, aliases });
+// Valores orientativos y deliberadamente redondeados por 100 g; NO vienen de un registro personal.
+// Una comida compuesta sin receta desglosada no tiene datos micro comparables.
+const MICRO_PER_100 = {
+  egg:       [56, 138, 0, 2, 1.8, 12, 47, 0.9],
+  rice:      [10, 35, 0, 0, 0.2, 12, 3, 0],
+  chicken:   [15, 256, 0, 0, 1, 29, 4, 0.3],
+  oats:      [54, 429, 0, 0, 4.7, 177, 56, 0],
+  banana:    [5, 358, 8.7, 0, 0.3, 27, 20, 0],
+  apple:     [6, 107, 4.6, 0, 0.1, 5, 3, 0],
+  yogurt:    [121, 155, 0.5, 0, 0.1, 12, 7, 0.7],
+  bread:     [75, 230, 0, 0, 2.1, 81, 44, 0],
+  lentils:   [19, 369, 1.5, 0, 3.3, 36, 181, 0],
+  milk:      [120, 150, 0, 0.1, 0.1, 11, 5, 0.5],
+  almonds:   [269, 733, 0, 0, 3.7, 270, 44, 0],
+  broccoli:  [47, 316, 89, 0, 0.7, 21, 63, 0],
+  potato:    [5, 379, 13, 0, 0.3, 22, 10, 0],
+  tuna:      [11, 237, 0, 1.7, 1.3, 35, 2, 2.2],
+  oil:       [1, 1, 0, 0, 0, 0, 0, 0],
+};
+const MICRO_IDS = ['calcium', 'potassium', 'vitaminC', 'vitaminD', 'iron', 'magnesium', 'folate', 'b12'];
+const food = (id, name, per100, portions, aliases = []) => ({
+  id, name, per100, portions, aliases,
+  microPer100: MICRO_PER_100[id] ? Object.fromEntries(MICRO_IDS.map((n, i) => [n, MICRO_PER_100[id][i]])) : null,
+});
 
 export const FOOD_CATALOG = Object.freeze([
   food('egg', 'Huevo', { kcal: 143, protein: 12.6, carbs: 0.7, fat: 9.5, fiber: 0 }, [{ id: 'unit', label: 'unidad', grams: 50 }, { id: 'g', label: 'g', grams: 1 }], ['huevo', 'huevos']),

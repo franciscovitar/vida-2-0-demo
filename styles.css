@@ -1,5 +1,27 @@
 /* Vida 2.0 — «Claridad refinada»: estructura funcional y una identidad violeta suave. */
 
+.micro-ref { display: block; font-weight: 400; margin-top: 3px; }
+.micro-table td .bar { width: min(150px, 100%); margin-top: 7px; }
+.micro-table td { min-width: 94px; }
+.import-stats { margin: 18px 0; }
+.import-action { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px; margin-top: 18px; }
+.import-action p { max-width: 58ch; }
+.import-action .btn:disabled { cursor: default; opacity: 0.58; }
+.strength-benchmark { display: grid; gap: 15px; }
+.strength-benchmark .card-head { margin-bottom: 0; }
+.benchmark-levels { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; }
+.benchmark-levels > span { display: grid; gap: 3px; padding: 10px 7px; background: var(--sunken); color: var(--ink-3); border: 1px solid var(--line); border-radius: 8px; text-align: center; font-size: 12px; }
+.benchmark-levels > span.is-current { background: var(--care-bg); border-color: var(--care-track); color: var(--care-fg); font-weight: 700; }
+.benchmark-levels small { font-size: 11px; }
+.routine-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.routine-grid .card { display: grid; gap: 12px; align-content: start; }
+@media (max-width: 700px) {
+  .routine-grid { grid-template-columns: minmax(0, 1fr); }
+  .benchmark-levels { gap: 3px; }
+  .benchmark-levels > span { padding: 8px 2px; font-size: 10px; overflow-wrap: anywhere; }
+  .benchmark-levels small { font-size: 10px; }
+}
+
 @font-face { font-family: 'Geist'; src: url('./fonts/geist.woff2') format('woff2'); font-weight: 100 900; font-display: swap; }
 @font-face { font-family: 'Geist Mono'; src: url('./fonts/geist-mono.woff2') format('woff2'); font-weight: 100 900; font-display: swap; }
 

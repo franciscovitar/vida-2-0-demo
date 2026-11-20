@@ -694,3 +694,40 @@ test('inglés: un error recurrente se convierte en tarjeta del mazo, sin duplica
   assert.match(ui.panel.innerHTML, /Pitch del producto/);
   assert.match(ui.panel.innerHTML, /Sesiones en noviembre<\/dt><dd class="mono">6/);
 });
+
+test('etapa 5B: ventanas de nutrientes, benchmark, rutina y cobertura explícita', () => {
+  ui.click({ action: 'reset' });
+  ui.click({ tab: 'nutricion' });
+  ui.click({ nutritionTab: 'nutrientes' });
+  assert.match(ui.panel.innerHTML, /Micronutrientes · promedios comparables/);
+  assert.match(ui.panel.innerHTML, /Calcio[\s\S]*?Atención/);
+  ui.click({ nutritionWindow: '7' });
+  assert.match(ui.panel.innerHTML, /2\/7/);
+  assert.doesNotMatch(ui.panel.innerHTML, /<span class="state-pill is-watch">Atención<\/span>/);
+  ui.click({ tab: 'gimnasio' });
+  ui.click({ gymTab: 'progreso' });
+  assert.match(ui.panel.innerHTML, /Referencia de fuerza/);
+  assert.match(ui.panel.innerHTML, /Intermedio/);
+  assert.match(ui.panel.innerHTML, /Los umbrales se inventaron/);
+  ui.click({ gymTab: 'rutina' });
+  assert.match(ui.panel.innerHTML, /Alternativa visual «V4»/);
+  assert.match(ui.panel.innerHTML, /no aplicada/);
+});
+
+test('etapa 5B: importar extracto de prueba detecta duplicados, se puede deshacer y repetir sin efecto', () => {
+  ui.click({ action: 'reset' });
+  ui.click({ tab: 'finanzas' });
+  ui.click({ financeTab: 'import' });
+  assert.match(ui.panel.innerHTML, /Confirmar 4 movimientos/);
+  ui.click({ financeImport: 'example' });
+  assert.match(ui.panel.innerHTML, /Todo conciliado/);
+  assert.equal(app.__test.data.finances.movements.length, 2);
+  ui.click({ financeImport: 'example' });
+  assert.equal(app.__test.data.finances.movements.length, 2);
+  ui.click({ financeTab: 'movements' });
+  assert.match(ui.panel.innerHTML, /Café y merienda/);
+  ui.click({ action: 'undo' });
+  assert.equal(app.__test.data.finances.movements.length, 0);
+  ui.click({ financeTab: 'import' });
+  assert.match(ui.panel.innerHTML, /Confirmar 4 movimientos/);
+});

@@ -1,6 +1,6 @@
 /** Vista Gimnasio: sesión de hoy con registro de series, progreso (e1RM) e historial. Plantillas puras. */
 import { formatDecimal, formatNumber, parseExercise } from '../../logic.js';
-import { STABLE_BAND, bestSet, e1rmSeries, epley, muscleSets, sessionSummary, setVolume, weeklyVolume } from '../domain/gym.js';
+import { STABLE_BAND, STRENGTH_LEVELS, bestSet, e1rmSeries, epley, muscleSets, sessionSummary, setVolume, strengthBenchmark, weeklyVolume } from '../domain/gym.js';
 import { weeklyCardio } from '../domain/health.js';
 import { esc, fieldError, icon, note, pageHead, pct, segments, shortDate, tabs, vars } from './ui.js';
 
@@ -122,6 +122,7 @@ function progresoTab(data, ui, gym) {
   const muscles = muscleSets(gym, data.gym.today, data.today);
   const maxSets = Math.max(1, ...muscles.map((m) => m.sets));
   const first = series[0]; const last = series.at(-1);
+  const benchmark = strengthBenchmark(selected.id, series);
   return `
     <div class="chips" role="group" aria-label="Elegir ejercicio">${loadExercises.map((e) => `<button type="button" class="chip-btn" data-gym-exercise="${e.id}" aria-pressed="${e.id === selected.id}">${esc(e.name)}</button>`).join('')}</div>
     <div class="split">
@@ -136,6 +137,14 @@ function progresoTab(data, ui, gym) {
         <tbody>${recent.map((p) => `<tr class="${p.isToday ? 'is-today' : ''}"><td>${p.isToday ? 'Hoy' : shortDate(p.date)}</td><td class="mono">${fmtKg(p.kg)} × ${p.reps}</td><td class="mono">${formatDecimal(p.e1rm)}</td></tr>`).join('')}</tbody></table>
       </section>
     </div>
+    ${benchmark ? `<section class="card strength-benchmark a-care" aria-labelledby="benchmark-title">
+      <div class="card-head"><div><p class="eyebrow">Escala demostrativa · no normativa</p><h2 id="benchmark-title">Referencia de fuerza · ${esc(selected.name)}</h2></div><span class="state-pill">${benchmark.level}</span></div>
+      <div class="benchmark-levels">${STRENGTH_LEVELS.map((level, i) => `<span class="${level === benchmark.level ? 'is-current' : ''}">${level}<small class="mono">${benchmark.thresholds[i]} kg</small></span>`).join('')}</div>
+      ${benchmark.next ? `<p><strong class="mono">${formatDecimal(benchmark.current)} kg e1RM</strong> · siguiente nivel ${benchmark.nextLevel} (${benchmark.next} kg)</p>
+      <span class="bar bar-lg a-care" ${vars({ w: pct(benchmark.progress) })}><span></span></span>
+      <p class="muted small">${formatNumber(benchmark.progress)} % del tramo entre niveles. ${benchmark.eta ? `ETA matemática: ≈${benchmark.eta.days} días con tendencia log-lineal consistente (R² ${benchmark.eta.r2.toFixed(2)}). No es una predicción garantizada.` : 'Sin ETA: la tendencia no cumple los criterios de fiabilidad.'}</p>` : '<p>Escala demostrativa completa. No hay un siguiente nivel.</p>'}
+      <p class="caption">Los umbrales se inventaron para esta demo: NO son los valores del benchmark personal de Vida 2.0 ni equivalen a estándares por edad o peso.</p>
+    </section>` : ''}
     <div class="split even">
       <section class="card" aria-labelledby="vol-title">
         <div class="card-head"><h2 id="vol-title">Volumen semanal</h2><span class="muted small">kg × reps · últimas 6 semanas</span></div>
@@ -147,6 +156,20 @@ function progresoTab(data, ui, gym) {
       </section>
     </div>
     ${note('Distribución descriptiva, no una prescripción. En Vida 2.0 real estas comparaciones salen del historial canónico en Google Sheets; acá, de 12 sesiones sintéticas.')}`;
+}
+
+function rutinaTab(data) {
+  const proposal = [
+    { day: 'Día A', focus: 'Empuje + piernas', sets: [['Press de pecho', '3 × 8–12'], ['Sentadilla goblet', '3 × 8–12'], ['Elevación lateral', '2 × 12–15']] },
+    { day: 'Día B', focus: 'Tracción + core', sets: [['Remo sentado', '3 × 8–12'], ['Jalón', '3 × 8–12'], ['Plancha', '3 × 30–45 s']] },
+    { day: 'Día C', focus: 'Piernas + empuje', sets: [['Prensa', '3 × 10–12'], ['Press de pecho', '2 × 8–12'], ['Gemelos', '3 × 12–15']] },
+    { day: 'Día D', focus: 'Tracción + accesorios', sets: [['Remo sentado', '3 × 10–12'], ['Curl de bíceps', '2 × 10–12'], ['Plancha', '3 × 30–45 s']] },
+  ];
+  return `<section class="card" aria-labelledby="routine-title"><div class="card-head"><h2 id="routine-title">Rutina actual en la demo</h2><span class="tag a-care">Registro activo</span></div>
+    <p class="muted">${data.gym.exercises.map((e) => esc(e.name)).join(' · ')}. Esta es la única rutina que modifica las series de la visita.</p></section>
+    <div class="section-head"><h2>Alternativa visual «V4»</h2><span class="tag">Propuesta · no aplicada</span></div>
+    <div class="routine-grid">${proposal.map((d) => `<section class="card"><p class="eyebrow a-care">${d.day}</p><h2>${d.focus}</h2><ul class="movements">${d.sets.map(([name, sets]) => `<li><strong>${name}</strong><span class="mono">${sets}</span></li>`).join('')}</ul></section>`).join('')}</div>
+    ${note('Es un ejemplo gráfico de cómo Vida puede comparar versiones de rutina. No se extrajo la V4 personal, no reemplaza el plan activo y no constituye una prescripción de entrenamiento.')}`;
 }
 
 function historialTab(data, gym, summary) {
@@ -204,7 +227,7 @@ export function gymView(data, ui) {
   const summary = sessionSummary(gym, data.gym.today);
   const tab = ui.gymTab;
   return `${pageHead('Sesión de hoy', 'Progresá a tu ritmo.', `${gym.exercises.length} ejercicios planificados · historial de ${gym.history.length} sesiones. Registrá series y mirá cómo cambian tus comparaciones.`)}
-    ${tabs('gym-tab', tab, [['hoy', 'Hoy'], ['progreso', 'Progreso'], ['cardio', 'Cardio'], ['historial', 'Historial']])}
-    ${tab === 'progreso' ? progresoTab(data, ui, gym) : tab === 'cardio' ? cardioTab(data, ui) : tab === 'historial' ? historialTab(data, gym, summary) : hoyTab(data, ui, gym, summary)}
+    ${tabs('gym-tab', tab, [['hoy', 'Hoy'], ['progreso', 'Progreso'], ['cardio', 'Cardio'], ['rutina', 'Rutina'], ['historial', 'Historial']])}
+    ${tab === 'progreso' ? progresoTab(data, ui, gym) : tab === 'cardio' ? cardioTab(data, ui) : tab === 'rutina' ? rutinaTab(data) : tab === 'historial' ? historialTab(data, gym, summary) : hoyTab(data, ui, gym, summary)}
     ${note('Rutina y pesos ficticios. No son una prescripción de entrenamiento.')}`;
 }

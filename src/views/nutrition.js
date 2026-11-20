@@ -1,6 +1,6 @@
 /** Vista Nutrición: registro desde catálogo, cobertura explícita, objetivo en rango y tendencias. Plantillas puras. */
 import { formatDecimal, formatNumber } from '../../logic.js';
-import { dailySeries, energyStatus, itemNutrients, macroShares, totals } from '../domain/nutrition.js';
+import { dailySeries, energyStatus, itemNutrients, macroShares, microWindow, totals } from '../domain/nutrition.js';
 import { esc, fieldError, icon, note, pageHead, pct, tabs, vars } from './ui.js';
 
 const MOMENTS = ['Desayuno', 'Almuerzo', 'Merienda', 'Cena', 'Colación'];
@@ -109,6 +109,28 @@ function tendenciasTab(data) {
     ${note('Las tendencias combinan 12 días sintéticos con lo que registres hoy. En Vida 2.0 real, Nutrition Intelligence materializa resúmenes diarios en Google Sheets y Vida recompone desde los registros crudos si están desactualizados.')}`;
 }
 
+function nutrientesTab(data, ui) {
+  const days = [...data.nutrition.history, ...data.nutrition.days.map((d) => ({ date: d.date, items: d.meals, closed: d.closed }))];
+  const windowDays = ui.nutritionWindow ?? 28;
+  const report = microWindow(days, data.nutrition.catalog, data.today, windowDays);
+  return `
+    <div class="chips" role="group" aria-label="Ventana de micronutrientes">${[7, 14, 28, 90].map((n) => `<button type="button" class="chip-btn" data-nutrition-window="${n}" aria-pressed="${windowDays === n}">${n} días</button>`).join('')}</div>
+    <dl class="stat-strip"><div><dt>Días registrados en la ventana</dt><dd class="mono">${report.registeredDays}<small>/${windowDays}</small></dd></div>
+      <div><dt>Señales con evidencia suficiente</dt><dd class="mono">${report.signals.length}</dd></div>
+      <div><dt>Criterio de atención</dt><dd class="mono">3+<small> días evaluables</small></dd></div></dl>
+    <section class="card flush" aria-labelledby="micro-title">
+      <div class="card-head padded"><h2 id="micro-title">Micronutrientes · promedios comparables</h2><span class="tag a-care">Referencias ilustrativas</span></div>
+      <div class="table-wrap"><table class="data-table micro-table"><thead><tr><th scope="col">Nutriente</th><th scope="col">Promedio diario</th><th scope="col">Cobertura</th><th scope="col">Días bajos</th><th scope="col">Lectura</th></tr></thead><tbody>
+        ${report.nutrients.map((n) => `<tr><th scope="row">${n.label}<small class="muted micro-ref">Referencia: ${formatDecimal(n.reference)} ${n.unit}</small></th>
+          <td class="mono">${n.average === null ? '—' : `${formatDecimal(n.average)} ${n.unit}`}${n.average === null ? '' : `<span class="bar a-care" ${vars({ w: pct(n.average / n.reference * 100) })}><span></span></span>`}</td>
+          <td class="mono">${n.evaluable}/${report.registeredDays}</td><td class="mono">${n.lowDays}/${n.evaluable}</td>
+          <td><span class="state-pill ${n.signal ? 'is-watch' : n.evaluable < 3 ? '' : 'is-add'}">${n.signal ? 'Atención' : n.evaluable < 3 ? 'Sin evidencia' : 'Sin señal'}</span></td></tr>`).join('')}
+      </tbody></table></div>
+      <p class="card-foot padded">«Atención» = al menos 3 días evaluables, 2 días bajo el 80 % de la referencia y presencia en ≥50 % de esos días. No es un diagnóstico de deficiencia.</p>
+    </section>
+    ${note('Un día con comidas compuestas sin receta, datos faltantes o registro abierto se excluye del promedio de ese micronutriente. Por eso la cobertura cambia según la ventana. Las referencias y las cantidades son ficticias y redondeadas; no incluyen suplementos.')}`;
+}
+
 function catalogoTab(data) {
   return `<section class="card flush" aria-labelledby="cat-title"><div class="card-head padded"><h2 id="cat-title">Catálogo de la demo</h2><span class="muted small">valores aproximados por 100 g</span></div>
     <div class="table-wrap"><table class="data-table"><thead><tr><th scope="col">Alimento</th><th scope="col">kcal</th><th scope="col">Prot.</th><th scope="col">Carb.</th><th scope="col">Grasa</th><th scope="col">Fibra</th><th scope="col">Porciones</th></tr></thead>
@@ -119,7 +141,7 @@ function catalogoTab(data) {
 export function nutritionView(data, ui) {
   const tab = ui.nutritionTab;
   return `${pageHead('Diario de comidas', 'Comer con más claridad.', 'Registrá alimentos por porción y mirá energía, macros y cobertura actualizarse al instante.')}
-    ${tabs('nutrition-tab', tab, [['hoy', 'Hoy'], ['tendencias', 'Tendencias'], ['catalogo', 'Catálogo']])}
-    ${tab === 'tendencias' ? tendenciasTab(data) : tab === 'catalogo' ? catalogoTab(data) : hoyTab(data, ui)}
+    ${tabs('nutrition-tab', tab, [['hoy', 'Hoy'], ['tendencias', 'Tendencias'], ['nutrientes', 'Nutrientes'], ['catalogo', 'Catálogo']])}
+    ${tab === 'tendencias' ? tendenciasTab(data) : tab === 'nutrientes' ? nutrientesTab(data, ui) : tab === 'catalogo' ? catalogoTab(data) : hoyTab(data, ui)}
     ${note('Comidas, valores y objetivos completamente ficticios. Esta demo no ofrece asesoramiento nutricional.')}`;
 }

@@ -89,7 +89,7 @@ Estados: **Impl.** = implementado y en rutas activas · **Flag** = implementado 
 | 1 | Sincronización Git, investigación, este documento | ✅ |
 | 2 | Store con deshacer, dominios puros, datos sintéticos con historia | ✅ (ver §6) |
 | 3 | Flujo vertical: Gimnasio + Nutrición + captura global (formulario y conversacional) | ✅ (ver §6) |
-| 4 | Ampliación: Finanzas (gasto, Safe-to-Spend), Compras (reposición), Estudio (calificación), Salud (scores), Media (series) | Pendiente |
+| 4 | Ampliación: Finanzas (gasto, Safe-to-Spend), Compras (reposición), Estudio (calificación), Salud (scores), Media (series) | ✅ (checkpoint 2) |
 | 5 | "Cómo funciona Vida 2.0": arquitectura real vs demo | ✅ primera versión |
 | 6 | QA integral y Preview | ✅ para esta etapa |
 
@@ -146,3 +146,19 @@ Investigado en el original antes de implementar: `lib/finance/safe-to-spend.ts` 
 - Media: series, «en progreso», historial.
 - Centro de información (World/Intelligence) con piezas marcadas como ejemplo y procedencia.
 - Evaluar TypeScript con `checkJs`.
+
+### Checkpoint 3 — 2026-11-20 · etapa 5A (commit `202012ad`)
+
+- **Organizar › Plan y logros:** «En qué quedé», bloqueo y antigüedad de avances, objetivos medidos por hitos, revisión semanal compuesta de los módulos y logros autoinformados con validación de fecha civil.
+- **Inglés:** pestañas Práctica/Perfil/Sesiones, perfil de nueve dimensiones (evidencia y confianza) con información ficticia, registro de sesiones y creación idempotente de tarjetas ante errores recurrentes.
+- **QA reportado:** 59 tests; cambios guardados en la rama `feat/full-showcase-capture`. No se cambió `main`.
+
+### Checkpoint 4 — 2026-11-20 · etapa 5B (continuación)
+
+- **Nutrición › Nutrientes:** catálogo sintético de ocho micronutrientes con valores aproximados por 100 g, ventanas 7/14/28/90D y promedios únicamente sobre días completos con todos los componentes conocidos. «Atención» requiere ≥3 días evaluables, ≥2 bajos y ≥50 % de frecuencia; el umbral de comparación de esta demo es 80 % de referencias ilustrativas. El patrón de la muestra genera 0 señales en 7D (solo 2 evaluables) y 4 en 14D.
+- **Gimnasio › Progreso/Rutina:** benchmark sintético con niveles Inicial–Élite, barra hacia el siguiente umbral y ETA matemática solo con tendencia log-lineal suficientemente consistente. Tabla deliberadamente inventada, no importada de una referencia personal. Rutina alternativa V4 como propuesta visual, sin cambiar las series activas.
+- **Finanzas › Importar:** extracto sintético local de ocho filas, validación de fechas/importes/tipos, conciliación por referencia y contenido, detección de duplicados, ambigüedades retenidas, exclusión de transferencias propias del balance económico, aplicación idempotente y deshacer. Sin archivos privados ni cuentas conectadas.
+- **QA de lógica e interfaz sin navegador:** 64 tests (`npm test`) y verificaciones de sintaxis/diff. `qa/browser_e2e.py` aporta un recorrido opcional, pero el navegador local del entorno actual no pudo iniciarse (`socket() Operation not permitted`); la ejecución E2E queda **sin certificar** hasta verificar el Preview publicado.
+- **TypeScript/checkJs:** evaluado, no se introdujo una dependencia de compilación para una demo estática sin build. El análisis formal de tipos queda como posible evolución, no como puerta de publicación de esta etapa.
+
+**Próxima acción:** verificar el deployment Preview exclusivo de esta rama, con navegación desktop/mobile, CSP y solicitudes de red. No tocar Production, `main` ni la aplicación Vida original sin autorización separada.

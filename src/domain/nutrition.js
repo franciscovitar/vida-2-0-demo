@@ -80,3 +80,49 @@ export function dailySeries(days, catalog, target) {
   const avg = (key) => (comparable.length ? comparable.reduce((s, p) => s + p[key], 0) / comparable.length : null);
   return { points, comparableDays: comparable.length, avgKcal: avg('kcal'), avgProtein: avg('protein'), withinDays: comparable.filter((p) => p.status === 'within').length };
 }
+
+/** Referencias ilustrativas de la demo, no objetivos clínicos ni personalizados. */
+export const MICRO_REFERENCES = Object.freeze([
+  { id: 'calcium', label: 'Calcio', unit: 'mg', reference: 1100 },
+  { id: 'potassium', label: 'Potasio', unit: 'mg', reference: 3500 },
+  { id: 'vitaminC', label: 'Vitamina C', unit: 'mg', reference: 90 },
+  { id: 'vitaminD', label: 'Vitamina D', unit: 'µg', reference: 15 },
+  { id: 'iron', label: 'Hierro', unit: 'mg', reference: 12 },
+  { id: 'magnesium', label: 'Magnesio', unit: 'mg', reference: 350 },
+  { id: 'folate', label: 'Folato', unit: 'µg', reference: 300 },
+  { id: 'b12', label: 'Vitamina B12', unit: 'µg', reference: 2.4 },
+]);
+
+/** Sin inferir nutrientes de recetas desconocidas ni de días abiertos. */
+export function microDay(day, catalog, nutrientId) {
+  if (day.closed === false || !day.items?.length) return null;
+  let amount = 0;
+  for (const item of day.items) {
+    if (!item.foodId || !Number.isFinite(item.grams) || item.grams <= 0) return null;
+    const food = catalog.find((f) => f.id === item.foodId);
+    const per100 = food?.microPer100?.[nutrientId];
+    if (per100 == null || !Number.isFinite(per100)) return null;
+    amount += per100 * item.grams / 100;
+  }
+  return amount;
+}
+
+/** La señal requiere ≥3 días evaluables, ≥2 bajos y presencia ≥50 % (umbral ilustrativo: 80 %). */
+export function microWindow(days, catalog, endDate, windowDays = 28) {
+  if (![7, 14, 28, 90].includes(windowDays)) throw new RangeError('Ventana inválida');
+  const end = Date.parse(`${endDate}T12:00:00Z`);
+  const inWindow = days.filter((day) => {
+    const delta = (end - Date.parse(`${day.date}T12:00:00Z`)) / 86_400_000;
+    return delta >= 0 && delta < windowDays;
+  });
+  const nutrients = MICRO_REFERENCES.map((ref) => {
+    const values = inWindow.map((d) => microDay(d, catalog, ref.id)).filter((v) => v !== null);
+    const evaluable = values.length;
+    const lowDays = values.filter((v) => v < ref.reference * 0.8).length;
+    const frequency = evaluable ? lowDays / evaluable : null;
+    const average = evaluable ? values.reduce((s, v) => s + v, 0) / evaluable : null;
+    const signal = evaluable >= 3 && lowDays >= 2 && frequency >= 0.5;
+    return { ...ref, average, evaluable, lowDays, frequency, signal, coverage: inWindow.length ? evaluable / inWindow.length : 0 };
+  });
+  return { windowDays, registeredDays: inWindow.length, nutrients, signals: nutrients.filter((n) => n.signal) };
+}

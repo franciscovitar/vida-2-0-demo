@@ -135,3 +135,45 @@ export function muscleSets(gym, todaySets, todayDate) {
   tally(todaySets);
   return [...counts].map(([muscle, sets]) => ({ muscle, sets }));
 }
+
+/** Umbrales INVENTADOS para exhibir el mecanismo, no una tabla normativa ni personal. */
+export const BENCHMARK_VERSION = 'demo-benchmark-illustrative-v1';
+export const STRENGTH_LEVELS = Object.freeze(['Inicial', 'Básico', 'Intermedio', 'Avanzado', 'Élite']);
+export const ILLUSTRATIVE_THRESHOLDS = Object.freeze({
+  press: [26, 34, 44, 54, 66],
+  row: [24, 32, 40, 50, 62],
+  squat: [12, 17, 23, 31, 40],
+});
+
+/** Ajuste log-lineal: sólo estima ETA si hay suficientes muestras y buen ajuste. */
+export function trendEta(points, nextE1rm) {
+  if (points.length < 6 || !(nextE1rm > 0)) return null;
+  const valid = points.filter((p) => p.e1rm > 0 && Number.isFinite(Date.parse(`${p.date}T12:00:00Z`)));
+  if (valid.length < 6) return null;
+  const origin = Date.parse(`${valid[0].date}T12:00:00Z`);
+  const xs = valid.map((p) => (Date.parse(`${p.date}T12:00:00Z`) - origin) / 86_400_000);
+  if (xs.at(-1) - xs[0] < 28 || new Set(xs).size < 6) return null;
+  const ys = valid.map((p) => Math.log(p.e1rm));
+  const meanX = xs.reduce((a, b) => a + b, 0) / xs.length;
+  const meanY = ys.reduce((a, b) => a + b, 0) / ys.length;
+  const varianceX = xs.reduce((s, x) => s + (x - meanX) ** 2, 0);
+  const slope = xs.reduce((s, x, i) => s + (x - meanX) * (ys[i] - meanY), 0) / varianceX;
+  const explained = xs.reduce((s, x) => s + (slope * (x - meanX)) ** 2, 0);
+  const total = ys.reduce((s, y) => s + (y - meanY) ** 2, 0);
+  const r2 = total ? explained / total : 0;
+  if (slope <= 0.0008 || r2 < 0.7) return null;
+  const days = Math.ceil(Math.log(nextE1rm / valid.at(-1).e1rm) / slope);
+  return days >= 1 && days <= 365 ? { days, r2, slope } : null;
+}
+
+export function strengthBenchmark(exerciseId, points) {
+  const thresholds = ILLUSTRATIVE_THRESHOLDS[exerciseId];
+  if (!thresholds || !points.length) return null;
+  const current = points.at(-1).e1rm;
+  const levelIndex = thresholds.findLastIndex((threshold) => current >= threshold);
+  const next = levelIndex >= STRENGTH_LEVELS.length - 1 ? null : thresholds[levelIndex + 1];
+  const lower = levelIndex < 0 ? 0 : thresholds[levelIndex];
+  const progress = next == null ? 100 : Math.min(100, Math.max(0, (current - lower) / (next - lower) * 100));
+  const eta = next == null ? null : trendEta(points, next);
+  return { version: BENCHMARK_VERSION, current, level: levelIndex >= 0 ? STRENGTH_LEVELS[levelIndex] : 'Sin nivel', nextLevel: next == null ? null : STRENGTH_LEVELS[levelIndex + 1], next, progress, eta, thresholds };
+}
