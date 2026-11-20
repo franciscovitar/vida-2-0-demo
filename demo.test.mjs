@@ -719,6 +719,7 @@ test('etapa 5B: importar extracto de prueba detecta duplicados, se puede deshace
   ui.click({ tab: 'finanzas' });
   ui.click({ financeTab: 'import' });
   assert.match(ui.panel.innerHTML, /Confirmar 4 movimientos/);
+  assert.match(ui.panel.innerHTML, /Movimiento negativo[\s\S]*?−\$ 1\.500[\s\S]*?Inválido/);
   ui.click({ financeImport: 'example' });
   assert.match(ui.panel.innerHTML, /Todo conciliado/);
   assert.equal(app.__test.data.finances.movements.length, 2);
