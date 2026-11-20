@@ -2,7 +2,8 @@ import { initialData } from './data.js';
 import { icon } from './icons.js';
 import { LABELS, areaOfTab, parseExercise } from './logic.js';
 import { moduleView } from './modules.js';
-import { applyIntent, editSet, togglePlannedSet, validateIntent } from './src/domain/actions.js';
+import { addEpisode, addRestockToList, applyIntent, editSet, rateSeason, recordCorrection, recordPurchase, togglePlannedSet, validateIntent } from './src/domain/actions.js';
+import { checkAnswer, schedule } from './src/domain/study.js';
 import { CAPTURE_EXAMPLES, parseCapture } from './src/domain/capture.js';
 import { captureDialog } from './src/views/capture.js';
 
@@ -16,15 +17,17 @@ const initialUi = Object.freeze({
   tourOpen: true, tourStep: 0,
   taskFilter: 'all', projectFilter: 'Todos', selectedProject: 'aurora',
   selectedDay: 0, selectedEvent: 'plan',
-  healthMetric: 'sleep',
+  healthMetric: 'sleep', healthTab: 'summary', healthScore: '',
   gymTab: 'hoy', gymExercise: 'press', gymEdit: '',
   nutritionDay: 0, nutritionTab: 'hoy', mealOpen: '',
   deck: 'web', cardIndex: 0, cardFlipped: false, cardKnown: 0, cardAgain: 0,
   englishIndex: 0, englishAnswer: '', englishPracticed: false,
-  financeCategory: 'home', financeMode: 'left', moviesFilter: 'Todas',
+  financeCategory: 'home', financeMode: 'left', financeTab: 'budget', purchase: null, movementFilter: 'all',
+  infoTab: 'readings', infoFront: 'all', infoOpen: '',
+  shoppingTab: 'list', mediaTab: 'films', seriesFilter: 'all', moviesFilter: 'Todas', answerResult: null,
   systemMode: 'real',
 });
-const freshUi = () => ({ ...initialUi, formErrors: {}, foodDraft: { foodId: 'banana', amount: 1, portionId: 'unit', moment: 'Desayuno' }, capture: freshCapture() });
+const freshUi = () => ({ ...initialUi, formErrors: {}, cardioDraft: { modality: 'bike', minutes: 40, rpe: '', watts: '' }, foodDraft: { foodId: 'banana', amount: 1, portionId: 'unit', moment: 'Desayuno' }, capture: freshCapture() });
 
 let data = structuredClone(initialData);
 let ui = freshUi();
@@ -181,6 +184,7 @@ const captureContext = () => ({
   exercises: data.gym.exercises.map((e) => ({ id: e.id, name: e.name, ...data.gym.exerciseMeta[e.id] })),
   catalog: data.nutrition.catalog,
   clock: data.demoClock.time,
+  needs: data.household.needs.map((n) => ({ id: n.id, name: n.name, category: n.category, aliases: [n.name.toLowerCase(), n.name.split(' ')[0].toLowerCase()] })),
 });
 
 /** Lleva la vista previa a la vista (importante en mobile) y anuncia su título. */
@@ -250,6 +254,33 @@ const submitHandlers = {
     if (!check.ok) { render(); announce('Revisá la cantidad del alimento.'); return; }
     commit('Alimento agregado', (draft) => { applyIntent(draft, intent); });
   },
+  purchase(form, values) {
+    const amount = Number(values.amount);
+    const ok = Number.isSafeInteger(amount) && amount > 0 && amount <= 100_000_000;
+    ui.formErrors.purchase = ok ? undefined : { amount: 'Ingresá un importe entero mayor que 0.' };
+    ui.purchase = ok ? amount : null;
+    render();
+    announce(ok ? 'Escenario de compra calculado.' : 'Revisá el importe a simular.');
+  },
+  cardio(form, values) {
+    const intent = { kind: 'cardio.session', modality: values.modality, minutes: values.minutes, rpe: values.rpe === '' ? null : Number(values.rpe), watts: values.watts === '' ? null : Number(values.watts) };
+    ui.cardioDraft = { ...values };
+    const check = validateIntent(data, intent);
+    ui.formErrors.cardio = check.ok ? undefined : check.errors;
+    if (!check.ok) { render(); announce('Revisá los datos de la sesión de cardio.'); return; }
+    commit('Sesión de cardio agregada', (draft) => { applyIntent(draft, intent); });
+  },
+  answer(form, values) {
+    const key = form.dataset.card;
+    const [deckId, index] = key.split(':');
+    const card = data.decks.find((d) => d.id === deckId).cards[Number(index)];
+    const result = checkAnswer(card, values.answer);
+    ui.formErrors.answer = result ? undefined : { answer: 'Escribí una respuesta para comprobar.' };
+    ui.answerResult = result ? { key, ...result } : null;
+    if (result) ui.cardFlipped = true;
+    render();
+    announce(result ? (result.correct ? 'Respuesta correcta' : 'La respuesta no coincide') : 'Falta la respuesta');
+  },
   parse(form, values) {
     ui.capture.text = String(values.text ?? '');
     ui.capture.errors = {};
@@ -285,7 +316,7 @@ const submitHandlers = {
 /* ───────── Clicks ───────── */
 
 const clickHandlers = {
-  tab: (value) => changeTab(value),
+  tab: (value, target) => { if (target?.dataset?.gymTabTarget) ui.gymTab = target.dataset.gymTabTarget; changeTab(value); },
   action: (value) => { if (value === 'reset') resetDemo(); if (value === 'undo') undo(); },
   openCapture: (value) => openCapture(value),
   captureClose: () => closeCapture(),
@@ -323,7 +354,37 @@ const clickHandlers = {
     render(); announce('Agenda actualizada');
   },
   event: (value) => { ui.selectedEvent = value; render(); announce(`Detalle de ${data.agenda.find((e) => e.id === value)?.title ?? ''}`); },
-  healthMetric: (value) => { ui.healthMetric = value; render(); announce(`Indicador: ${value === 'sleep' ? 'sueño' : value === 'steps' ? 'pasos' : 'minutos activos'}`); },
+  healthTab: (value) => { ui.healthTab = value; render(); },
+  healthScore: (value) => { ui.healthScore = value; render(); },
+  financeTab: (value) => { ui.financeTab = value; render(); },
+  movementFilter: (value) => { ui.movementFilter = value; render(); },
+  shoppingTab: (value) => { ui.shoppingTab = value; render(); },
+  restockAdd: (value) => commit('Agregado a la lista de compras', (draft) => addRestockToList(draft, value)),
+  restockCorrect: (value) => { const [id, type] = value.split(':'); commit('Corrección registrada: la reposición se recalculó', (draft) => { recordCorrection(draft, id, type); }); },
+  restockBought: (value) => commit('Compra registrada: la reposición se recalculó', (draft) => { recordPurchase(draft, value); }),
+  mediaTab: (value) => { ui.mediaTab = value; render(); },
+  infoTab: (value) => { ui.infoTab = value; render(); },
+  infoFront: (value) => { ui.infoFront = value; render(); },
+  infoOpen: (value) => { ui.infoOpen = value; render(); },
+  infoFeedback: (value) => {
+    const [id, fb] = value.split(':');
+    data.info.feedback = { ...data.info.feedback, [id]: data.info.feedback[id] === fb ? undefined : fb };
+    render();
+    announce(data.info.feedback[id] ? 'Opinión guardada para esta pieza' : 'Opinión quitada');
+  },
+  automationToggle: (value) => commit('Estado de la automatización cambiado', (draft) => {
+    const a = draft.info.automations.find((x) => x.id === value);
+    a.enabled = !a.enabled;
+  }),
+  automationRun: (value) => commit('Ejecución simulada registrada', (draft) => {
+    const a = draft.info.automations.find((x) => x.id === value);
+    a.runs = [{ id: `run-${(draft.seq = (draft.seq ?? 0) + 1)}`, at: `${draft.today}T${draft.demoClock.time}`, state: a.enabled ? 'succeeded' : 'skipped', detail: a.enabled ? 'Ejecución manual simulada' : 'Pausada: el kill switch impidió la ejecución' }, ...a.runs];
+  }),
+  seriesFilter: (value) => { ui.seriesFilter = value; render(); },
+  episode: (value) => { let label = null; commit('Episodio registrado', (draft) => { label = addEpisode(draft, value); return label ? undefined : false; }); },
+  seasonRate: (value) => { const [id, n, r] = value.split(':'); commit('Calificación de temporada guardada', (draft) => (rateSeason(draft, id, Number(n), Number(r)) ? undefined : false)); },
+  cardRate: (value) => advanceCard('cardKnown', value),
+  healthMetric: (value) => { ui.healthMetric = value; ui.healthTab = 'trends'; render(); announce(`Indicador: ${value === 'sleep' ? 'sueño' : value === 'steps' ? 'pasos' : 'minutos activos'}`); },
   gymTab: (value) => { ui.gymTab = value; ui.gymEdit = ''; render(); },
   gymExercise: (value) => { ui.gymExercise = value; render(); },
   gymEdit: (value) => { ui.gymEdit = value; render(); if (value) panel.querySelector?.(`[data-set="${value}"] input`)?.focus(); },
@@ -345,8 +406,8 @@ const clickHandlers = {
     render(); announce(`Mazo ${data.decks.find((d) => d.id === value)?.title ?? ''}`);
   },
   flip: () => { ui.cardFlipped = !ui.cardFlipped; render(); announce(ui.cardFlipped ? 'Respuesta revelada' : 'Pregunta visible'); },
-  nextCard: () => advanceCard('cardKnown'),
-  cardAgain: () => advanceCard('cardAgain'),
+  nextCard: () => advanceCard('cardKnown', 'good'),
+  cardAgain: () => advanceCard('cardAgain', 'again'),
   englishAnswer: (value) => {
     if (ui.englishAnswer) return;
     ui.englishAnswer = value;
@@ -368,8 +429,11 @@ const clickHandlers = {
   },
 };
 
-function advanceCard(counter) {
+function advanceCard(counter, rating) {
   const deck = data.decks.find((d) => d.id === ui.deck);
+  const key = `${deck.id}:${ui.cardIndex % deck.cards.length}`;
+  data.study[key] = schedule(data.study[key], rating);
+  ui.answerResult = null;
   ui[counter] += 1;
   ui.cardIndex = (ui.cardIndex + 1) % deck.cards.length;
   ui.cardFlipped = false;
@@ -387,7 +451,7 @@ document.addEventListener('click', (event) => {
     if (name in target.dataset) {
       if (target.tagName === 'A') event.preventDefault?.();
       if (info?.open) info.open = false;
-      handler(target.dataset[name]);
+      handler(target.dataset[name], target);
       return;
     }
   }
@@ -433,7 +497,15 @@ document.addEventListener('change', (event) => {
     }
   } else if (shoppingCheck) {
     const item = data.shopping.find((s) => s.id === shoppingCheck);
-    if (item) { item.checked = target.checked; render(); announce(`${item.name}: ${item.checked ? 'en la compra' : 'pendiente'}`); }
+    if (item) {
+      item.checked = target.checked;
+      // Un producto sugerido por la reposición, al tacharlo, cuenta como compra (y se puede deshacer destildándolo).
+      if (item.needId) {
+        const ref = `buy-${item.id}`;
+        data.household.extraPurchases = data.household.extraPurchases.filter((p) => p.id !== ref);
+        if (item.checked) { recordPurchase(data, item.needId, ref); item.checked = true; }
+      }
+      render(); announce(`${item.name}: ${item.checked ? 'en la compra' : 'pendiente'}`); }
   }
 });
 

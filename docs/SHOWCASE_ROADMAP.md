@@ -112,7 +112,32 @@ Estados: **Impl.** = implementado y en rutas activas · **Flag** = implementado 
 
 **Pruebas:** 42 (`npm test`): 16 originales (3 aserciones de texto actualizadas en la etapa anterior, una aserción de `aria-pressed` precisada ahora), 10 de la etapa «Claridad», 6 de flujos de esta etapa y 10 de dominio.
 
-**Pendiente (etapa 4)**
+### Checkpoint 2 — 2026-11-20 · etapa 4: profundidad por módulo
+
+Investigado en el original antes de implementar: `lib/finance/safe-to-spend.ts` y docs de Fase 5, `lib/household-replenishment/engine.ts`, `lib/health/scores.ts`, `docs/gym-v2-source.md` (MET-min), `lib/study-engine/scheduler.ts` (FSRS), `lib/media/*`, `lib/world/feedback.ts`, `lib/professional/*`, `lib/automations/*`.
+
+| Módulo | Qué se agregó | Fidelidad al original |
+| --- | --- | --- |
+| Finanzas | Capacidad (Safe-to-Spend con desglose), simulador de compra, movimientos con vista económica (transferencias excluidas), resiliencia (participación del ingreso laboral y volatilidad con 3+ meses). Un gasto registrado reduce la liquidez. | Misma fórmula `safe-to-spend-v1.0.0`; el simulador no recomienda. |
+| Compras | Pestaña Reposición: cadencia por producto, confianza, estados, atípicos descartados, correcciones («todavía tengo», «queda poco», «se acabó»), «lo compré hoy», agregar a la lista. Tachar un sugerido registra la compra (y destildarlo la revierte). | Port del motor real (mediana ponderada, MAD, umbrales y factores de corrección). |
+| Salud | Resumen con Disposición, scores de Sueño/Actividad/Estabilidad cardio con contribuyentes, peso, confianza y cobertura; contexto vivo de Gimnasio, Cardio y Nutrición; Cobertura de 28 días; Tendencias. | Estructura, pesos, bandas y regla de cobertura ≥ 50 % del original; curvas simplificadas y versionadas (`demo-health-scores-v1`). |
+| Gimnasio | Pestaña Cardio: MET-min semanal contra 2.980 del plan, cumplimiento directo (pasos/bici/fútbol), MET y confianza por evidencia (W > RPE > rol), equivalencias restantes y registro de sesiones. | Mismo objetivo derivado y proxies del documento del original. |
+| Estudio | Calificación Otra vez/Difícil/Bien/Fácil con vista previa del intervalo, respuestas escritas evaluadas de forma determinista, estadísticas por mazo y próximos repasos. | Rotulado como simplificación; el original usa FSRS (`ts-fsrs`). |
+| Películas | Series con temporadas, progreso por episodio, calificación por temporada, filtros y resumen (episodios, horas, promedio, géneros). | Afinidades personales y notas externas excluidas. |
+| Centro de información (nuevo) | Lecturas explicativas de ejemplo con procedencia y los 6 valores canónicos de feedback; radar tecnológico (Adoptado / Evaluar ahora / Observar / En pausa); 5 automatizaciones del original con kill switch y ejecuciones simuladas. | Piezas atemporales marcadas como ejemplo, sin titulares de actualidad. |
+| Registrar | El intérprete reconoce cardio («45 minutos de bici con esfuerzo 6») y compras del hogar («compré leche y café por 9.800» → 2 compras + 1 gasto). | — |
+
+**Pruebas:** 56 (`npm test`).
+
+**Pendiente (siguiente etapa)**
+- Inglés: competencias (speaking/listening) e historial, como el English Speaking Lab.
+- Organizar: objetivos, logros y revisión semanal; continuidad «En qué quedé».
+- Nutrición: micronutrientes con cobertura y ventanas 7D/28D/90D.
+- Gimnasio: benchmark de fuerza versionado y rutina alternativa (V4) como propuesta visual.
+- Finanzas: importación de un extracto de ejemplo (preflight + conciliación) para mostrar el pipeline de importadores.
+- Evaluar TypeScript con `checkJs` y una prueba end-to-end en navegador real dentro de `npm test`.
+
+**Pendiente original de la etapa 4 (resuelto en el checkpoint 2)**
 - Finanzas: Safe-to-Spend y simulador de compra (fórmula `safe-to-spend-v1.0.0`).
 - Compras: reposición predictiva por cadencia, con confianza y correcciones.
 - Estudio: calificación Again/Hard/Good/Easy con intervalos deterministas, rotulados como simplificación de FSRS.

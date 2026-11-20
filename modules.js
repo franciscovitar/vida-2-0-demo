@@ -3,17 +3,18 @@
  * la aplicación personal y nunca lee red, almacenamiento ni el navegador.
  */
 import { icon } from './icons.js';
-import { esc, note, pageHead, pct, ring, segments, vars } from './src/views/ui.js';
+import { esc, note, pageHead, ring, segments, vars } from './src/views/ui.js';
 import { gymView } from './src/views/gym.js';
 import { nutritionView } from './src/views/nutrition.js';
 import { systemView } from './src/views/system.js';
-import {
-  AREAS, LABELS, areaOfTab, areaProgress, average, eventStatus, financeSummary,
-  formatDecimal, formatMoney, formatNumber, habitArea, healthDeltas,
-  signed, taskArea, toMinutes,
-} from './logic.js';
+import { financeView } from './src/views/finance.js';
+import { healthView } from './src/views/health.js';
+import { mediaView } from './src/views/media.js';
+import { shoppingView } from './src/views/shopping.js';
+import { studyView } from './src/views/study.js';
+import { infoView } from './src/views/info.js';
+import { AREAS, LABELS, areaOfTab, areaProgress, eventStatus, habitArea, taskArea, toMinutes } from './logic.js';
 
-const LONG_DAY = { 'Mié': 'miércoles', Jue: 'jueves', Vie: 'viernes', 'Sáb': 'sábado', Dom: 'domingo', Lun: 'lunes', Hoy: 'hoy' };
 const AGENDA_DAYS = [
   { short: 'Mar', num: 17, title: 'Hoy, martes 17' },
   { short: 'Mié', num: 18, title: 'Miércoles 18' },
@@ -160,71 +161,7 @@ function agendaView(data, ui) {
 
 /* ─────────────────────────── Cuidarme ─────────────────────────── */
 
-function saludView(data, ui) {
-  const { health } = data;
-  const deltas = healthDeltas(data);
-  const metrics = {
-    sleep: { label: 'Sueño', unit: 'h', values: health.sleepTrend, today: health.sleepHours, fmt: (v) => formatDecimal(v), delta: `${signed(deltas.sleep, 1)} h`, d: deltas.sleep, title: 'Horas de sueño por noche', caption: 'Registro semanal ilustrativo' },
-    steps: { label: 'Pasos', unit: 'pasos', values: health.stepsTrend, today: health.steps, fmt: formatNumber, delta: signed(deltas.steps), d: deltas.steps, title: 'Pasos por día', caption: 'Actividad diaria ilustrativa' },
-    activity: { label: 'Minutos activos', unit: 'min', values: health.activityTrend, today: health.activeMinutes, fmt: formatNumber, delta: `${signed(deltas.activity)} min`, d: deltas.activity, title: 'Minutos de actividad', caption: 'Movimiento semanal ilustrativo' },
-  };
-  const m = metrics[ui.healthMetric] ?? metrics.sleep;
-  const avg = average(m.values);
-  const max = Math.max(...m.values) * 1.08;
-  const labels = health.trendLabels;
-  const above = Object.values(metrics).filter((x) => x.d > 0).length;
-  const lead = above === 3 ? 'Hoy estás por encima de tu promedio en sueño, pasos y actividad.' : `Hoy superás tu promedio en ${above} de 3 indicadores.`;
-  const maxIdx = m.values.indexOf(Math.max(...m.values));
-  const minIdx = m.values.indexOf(Math.min(...m.values));
-  const insight = {
-    sleep: `Dormiste más de 7 horas en ${m.values.filter((v) => v > 7).length} de las últimas 7 noches. Tu mejor descanso fue el ${LONG_DAY[labels[maxIdx]]}.`,
-    steps: `El día con más pasos fue el ${LONG_DAY[labels[maxIdx]]} (${formatNumber(m.values[maxIdx])}). El más quieto, el ${LONG_DAY[labels[minIdx]]}.`,
-    activity: `${m.values.filter((v) => v > 40).length} días por encima de 40 minutos. Hoy estás ${m.today >= avg ? 'sobre' : 'debajo de'} tu promedio.`,
-  }[ui.healthMetric] ?? '';
-
-  return `${pageHead('Últimos 7 días', 'Tu bienestar, de un vistazo.', lead)}
-    <div class="metric-tabs" role="group" aria-label="Elegir indicador">${Object.entries(metrics).map(([key, x]) => `
-      <button type="button" class="metric-tab a-care" data-health-metric="${key}" aria-pressed="${ui.healthMetric === key}">
-        <span class="metric-top"><span>${x.label}</span><span class="delta ${x.d >= 0 ? 'up' : 'down'}">${x.delta} vs. prom.</span></span>
-        <span class="metric-value mono">${x.fmt(x.today)}<small> ${x.unit}</small></span>
-      </button>`).join('')}
-    </div>
-    <div class="split">
-      <section class="card" aria-labelledby="chart-title">
-        <div class="card-head"><h2 id="chart-title">${m.title}</h2><span class="legend"><span class="legend-dash" aria-hidden="true"></span>Tu promedio: ${m.fmt(Number(avg.toFixed(1)))} ${m.unit}</span></div>
-        <div class="bars a-care" role="img" aria-label="${m.title}. Hoy ${m.fmt(m.today)} ${m.unit}; promedio ${m.fmt(Number(avg.toFixed(1)))}." ${vars({ 'avg-n': (avg / max).toFixed(3) })}>
-          <span class="avg-line" aria-hidden="true"></span>
-          ${m.values.map((v, i) => `<span class="bar-col ${i === m.values.length - 1 ? 'is-today' : v >= avg ? 'is-above' : ''}"><span class="bar-fill" ${vars({ h: pct((v / max) * 100) })}><span class="bar-val mono">${m.fmt(v)}</span></span><span class="bar-day">${labels[i]}</span></span>`).join('')}
-        </div>
-        <p class="caption">${m.caption} · Cambiá el indicador para comparar otra serie.</p>
-      </section>
-      <aside class="stack">
-        <div class="card"><p class="eyebrow a-care">Pulso en reposo</p><p class="big mono">${health.restingPulse}<small> lpm</small></p><p class="muted">Valor de hoy. La demo no incluye historial de pulso, así que no se muestra tendencia.</p></div>
-        <div class="card"><p class="eyebrow">Lectura de la semana</p><p>${insight}</p><p class="muted small">Comparado contra tu propio promedio de 7 días.</p></div>
-      </aside>
-    </div>
-    ${note('Valores inventados para mostrar la interfaz. No son recomendaciones ni interpretaciones médicas.')}`;
-}
-
 /* ─────────────────────────── Aprender ─────────────────────────── */
-
-function mazosView(data, ui) {
-  const deck = data.decks.find((d) => d.id === ui.deck) ?? data.decks[0];
-  const card = deck.cards[ui.cardIndex % deck.cards.length];
-  const flipped = ui.cardFlipped;
-  return `${pageHead('Repaso manual', 'Aprender, recordar, crecer.', 'Mazos pequeños para practicar con recuperación activa: pensá la respuesta antes de darla vuelta.')}
-    <div class="deck-grid" role="group" aria-label="Elegir mazo">${data.decks.map((d) => `<button type="button" class="deck a-learn" data-deck="${d.id}" aria-pressed="${deck.id === d.id}"><strong>${d.title}</strong><small>${d.topic} · ${d.cards.length} tarjetas</small></button>`).join('')}</div>
-    <div class="study">
-      <button type="button" class="flash ${flipped ? 'is-flipped' : ''}" data-flip aria-label="${flipped ? 'Volver a la pregunta' : 'Revelar respuesta'}">
-        <span class="flash-top"><span>${flipped ? 'Respuesta' : 'Pregunta'}</span><span class="mono">${ui.cardIndex + 1} / ${deck.cards.length}</span></span>
-        <span class="flash-text">${flipped ? card.back : card.front}</span>
-        <span class="flash-hint">${flipped ? 'Tocá para volver a la pregunta' : 'Tocá la tarjeta para ver la respuesta'}</span>
-      </button>
-      <div class="study-actions"><button type="button" class="btn btn-outline" data-card-again>Repetir</button><button type="button" class="btn btn-learn" data-next-card>La sabía</button></div>
-      <div class="study-foot"><span class="dots" aria-hidden="true">${deck.cards.map((_, i) => `<span class="${i === ui.cardIndex ? 'is-current' : i < ui.cardIndex ? 'is-past' : ''}"></span>`).join('')}</span><span class="muted" role="status">Sabidas <strong class="mono t-learn">${ui.cardKnown}</strong> · Para repetir <strong class="mono t-care">${ui.cardAgain}</strong></span></div>
-    </div>
-    ${note('Repaso manual · sin algoritmo de repetición espaciada. Las tarjetas son sintéticas y no hay sincronización con Anki.')}`;
-}
 
 function inglesView(data, ui) {
   const q = data.english.questions[ui.englishIndex];
@@ -246,85 +183,23 @@ function inglesView(data, ui) {
 
 /* ───────────────────────────── Vivir ───────────────────────────── */
 
-function finanzasView(data, ui) {
-  const f = financeSummary(data);
-  const selected = f.categories.find((c) => c.id === ui.financeCategory) ?? f.categories[0];
-  const pacePct = Math.round(f.pace * 100);
-  const months = [...data.finances.months.slice(0, -1), Math.round(f.spent / 1000)];
-  const max = Math.max(...months);
-  return `${pageHead(`Noviembre · día ${data.demoClock.dayOfMonth} de ${data.demoClock.daysInMonth}`, 'Tu dinero, más claro.', '')}
-    <div class="money-hero"><p class="hero-number mono">${formatMoney(f.available)}<span> disponibles</span></p><p class="muted">de ${formatMoney(f.budget)} presupuestados · ingreso del mes ${formatMoney(f.income)}</p>
-      <div class="seg-control" role="group" aria-label="Mostrar">${[['left', 'Disponible'], ['spent', 'Gastado']].map(([id, label]) => `<button type="button" data-finance-mode="${id}" aria-pressed="${ui.financeMode === id}">${label}</button>`).join('')}</div>
-    </div>
-    <div class="split">
-      <section class="card" aria-labelledby="cats-title">
-        <div class="card-head"><h2 id="cats-title">Categorías</h2><span class="legend"><span class="legend-tick" aria-hidden="true"></span>Ritmo del mes (${pacePct}%)</span></div>
-        <div class="budget-list">${f.categories.map((c) => `
-          <button type="button" class="budget ${c.overPace ? 'is-over' : ''}" data-finance-category="${c.id}" aria-pressed="${selected.id === c.id}">
-            <span class="budget-top"><strong>${c.name}</strong><span class="mono">${ui.financeMode === 'spent' ? `${formatMoney(c.spent)} gastados` : `${formatMoney(c.left)} libres`}</span></span>
-            <span class="budget-bar" ${vars({ w: pct(c.used * 100), pace: `${pacePct}%` })}><span class="fill"></span><span class="pace" aria-hidden="true"></span></span>
-            <span class="budget-foot"><span class="status">${c.overPace ? 'Por encima del ritmo' : 'Dentro del ritmo'}</span><span class="mono muted">${Math.round(c.used * 100)}% de ${formatMoney(c.budget)}</span></span>
-          </button>`).join('')}
-        </div>
-      </section>
-      <aside class="stack">
-        <section class="card a-life" aria-labelledby="cat-detail"><p class="kicker">RESTANTE EN LA CATEGORÍA</p><h2 id="cat-detail">${selected.name}</h2><p class="big mono">${formatMoney(selected.left)}</p>
-          <p class="muted">${selected.overPace ? `Usaste ${Math.round(selected.used * 100)}% con el ${pacePct}% del mes transcurrido. Quedan ${f.daysLeft} días: ${formatMoney(selected.perDay)} por día mantiene el plan.` : `Vas dentro del plan. Podés usar ${formatMoney(selected.perDay)} por día durante los ${f.daysLeft} días que quedan.`}</p>
-          <dl class="facts three"><div><dt>Presupuesto</dt><dd class="mono">${formatMoney(selected.budget)}</dd></div><div><dt>Gastado</dt><dd class="mono">${formatMoney(selected.spent)}</dd></div><div><dt>Por día</dt><dd class="mono">${formatMoney(selected.perDay)}</dd></div></dl>
-        </section>
-        <section class="card" aria-labelledby="months-title"><div class="card-head"><h2 id="months-title">Gasto de los últimos 6 meses</h2><span class="muted small">miles de $</span></div>
-          <div class="month-bars a-life" role="img" aria-label="Gasto mensual entre ${Math.min(...months)} y ${max} mil pesos">${months.map((v, i) => `<span class="${i === months.length - 1 ? 'is-today' : ''}"><small class="mono">${v}</small><span ${vars({ h: pct((v / max) * 100) })}></span><small>${data.finances.monthLabels[i]}</small></span>`).join('')}</div>
-          <p class="caption">Noviembre se recalcula con cada gasto que registres.</p>
-        </section>
-        <section class="card" aria-labelledby="mov-title"><div class="card-head"><h2 id="mov-title">Movimientos de esta visita</h2><button type="button" class="link-btn" data-open-capture="expense">Registrar gasto ${icon('arrow', 14)}</button></div>
-          ${data.finances.movements.length ? `<ul class="movements">${data.finances.movements.map((m) => `<li><span><strong>${esc(m.description)}</strong><small>${esc(f.categories.find((c) => c.id === m.categoryId)?.name ?? '')}</small></span><span class="mono">−${formatMoney(m.amount)}</span></li>`).join('')}</ul>` : '<p class="empty-state">Todavía no registraste gastos. Probá con «Gasté 12.500 en el supermercado» desde Registrar.</p>'}
-        </section>
-      </aside>
-    </div>
-    ${note('Importes totalmente ficticios y orientados a demostración. No hay conexión con bancos ni asesoramiento financiero.')}`;
-}
-
-function comprasView(data) {
-  const checked = data.shopping.filter((i) => i.checked).length;
-  const groups = [...new Set(data.shopping.map((i) => i.category))];
-  return `${pageHead('Lista de la semana', 'Compras sin olvidos.', `${data.shopping.length - checked} por comprar · ${checked} de ${data.shopping.length} productos marcados`)}
-    <span class="bar bar-lg a-life" ${vars({ w: pct((checked / data.shopping.length) * 100) })}><span></span></span>
-    <div class="shop-grid">${groups.map((g) => `<section class="card" aria-labelledby="g-${g}"><h2 id="g-${g}" class="eyebrow">${g}</h2><ul class="check-list">${data.shopping.filter((i) => i.category === g).map((i) => `<li><label class="check-row a-life ${i.checked ? 'is-done' : ''}"><input class="check-input" type="checkbox" data-shopping-check="${i.id}" ${i.checked ? 'checked' : ''}/><span class="check-box" aria-hidden="true">${icon('check', 14)}</span><span class="check-text"><span class="check-label">${i.name}</span></span><span class="muted">${i.amount}</span></label></li>`).join('')}</ul></section>`).join('')}</div>
-    ${note('No se realizan compras ni pedidos. Los cambios se pierden al recargar.')}`;
-}
-
-function peliculasView(data, ui) {
-  const watched = data.movies.filter((m) => m.watched).length;
-  const options = [['Todas', data.movies.length], ['Por ver', data.movies.length - watched], ['Vistas', watched]];
-  const visible = data.movies.filter((m) => ui.moviesFilter === 'Todas' || (ui.moviesFilter === 'Por ver' ? !m.watched : m.watched));
-  return `${pageHead('Títulos y carteles inventados', 'Tus historias favoritas.', `${data.movies.length} títulos · ${watched} vistos`)}
-    <div class="chips" role="group" aria-label="Filtrar películas">${options.map(([o, n]) => `<button type="button" class="chip-btn" data-movies-filter="${o}" aria-pressed="${ui.moviesFilter === o}">${o} <span class="mono">${n}</span></button>`).join('')}</div>
-    <div class="movie-grid">${visible.map((m) => `
-      <article class="movie">
-        <div class="poster poster-${m.color}" aria-hidden="true"><span class="mono">${m.year}</span><strong>${m.title}</strong></div>
-        <h2 class="sr-only">${m.title}</h2>
-        <p class="muted small">${m.genre} · ${m.watched ? (m.rating ? `${m.rating}/5` : 'vista') : 'por ver'}</p>
-        <button type="button" class="btn ${m.watched ? 'btn-life' : 'btn-outline'} btn-block" data-movie-toggle="${m.id}" aria-pressed="${m.watched}">${m.watched ? `${icon('check', 16)} Vista` : 'Marcar como vista'}</button>
-      </article>`).join('')}
-    </div>
-    ${visible.length ? '' : '<p class="empty">No hay películas en este filtro.</p>'}
-    ${note('Títulos y carteles inventados para esta demo. No hay integración con catálogos ni streaming.')}`;
-}
-
 const VIEWS = {
   hoy: hoyView, tareas: tareasView, proyectos: proyectosView, agenda: agendaView,
-  salud: saludView, gimnasio: gymView, nutricion: nutritionView,
-  mazos: mazosView, ingles: inglesView,
-  finanzas: finanzasView, compras: comprasView, peliculas: peliculasView,
+  salud: healthView, gimnasio: gymView, nutricion: nutritionView,
+  mazos: studyView, ingles: inglesView, informacion: infoView,
+  finanzas: financeView, compras: shoppingView, peliculas: mediaView,
   sistema: (data, ui) => systemView(ui),
 };
+
+/** Etiquetas cortas para los segmentos (los nombres completos siguen en la barra lateral y en «Ir a»). */
+const SHORT_LABELS = { tareas: 'Tareas', mazos: 'Mazos', informacion: 'Información' };
 
 /** Barra de sub-módulos del área actual (segmentos en mobile y desktop). */
 export function areaNav(tab) {
   const key = areaOfTab(tab);
   if (!key) return '';
   const area = AREAS[key];
-  return `<nav class="subnav a-${key}" aria-label="${area.name}"><span class="subnav-area"><span class="dot" aria-hidden="true"></span>${area.name}</span><span class="seg-control">${area.tabs.map((t) => `<button type="button" data-tab="${t}" ${t === tab ? 'aria-current="page"' : ''}>${LABELS[t]}</button>`).join('')}</span></nav>`;
+  return `<nav class="subnav a-${key}" aria-label="${area.name}"><span class="subnav-area"><span class="dot" aria-hidden="true"></span>${area.name}</span><span class="seg-control">${area.tabs.map((t) => `<button type="button" data-tab="${t}" ${t === tab ? 'aria-current="page"' : ''}>${SHORT_LABELS[t] ?? LABELS[t]}</button>`).join('')}</span></nav>`;
 }
 
 export function moduleView(tab, data, ui) {

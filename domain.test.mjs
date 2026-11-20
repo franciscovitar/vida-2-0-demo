@@ -148,3 +148,109 @@ test('el texto ingresado se escapa antes de renderizarse', () => {
   assert.equal(esc('<img src=x onerror=alert(1)>'), '&lt;img src=x onerror=alert(1)&gt;');
   assert.equal(esc('"\'&'), '&quot;&#39;&amp;');
 });
+
+/* ───────── Etapa 4 ───────── */
+
+const finance = await import('./src/domain/finance.js');
+const repl = await import('./src/domain/replenishment.js');
+const health = await import('./src/domain/health.js');
+const study = await import('./src/domain/study.js');
+const NOW = new Date('2026-11-17T12:00:00Z');
+
+test('Safe-to-Spend sigue la fórmula del original y el simulador no recomienda', () => {
+  const p = initialData.finances.planning;
+  const s = finance.safeToSpend(p);
+  assert.deepEqual([s.committed, s.raw, s.value, s.status], [758000, 222000, 222000, 'available']);
+  const short = finance.safeToSpend({ ...p, liquidity: 700000 });
+  assert.deepEqual([short.value, short.shortfall, short.status], [0, 58000, 'shortfall']);
+  assert.throws(() => finance.safeToSpend({ ...p, reserve: -1 }), RangeError);
+  assert.equal(finance.purchaseScenario(p, 100000).state, 'within-capacity');
+  const uses = finance.purchaseScenario(p, 400000);
+  assert.deepEqual([uses.state, uses.beyondSafe, uses.protectedConsumed, uses.after.value], ['uses-commitments', 178000, 178000, 0]);
+  const beyond = finance.purchaseScenario(p, 1100000);
+  assert.deepEqual([beyond.state, beyond.beyondLiquidity, beyond.protectedConsumed], ['beyond-liquidity', 120000, 758000]);
+  assert.equal(finance.purchaseScenario(p, 0).valid, false);
+});
+
+test('vista económica y resiliencia: transferencias excluidas, volatilidad con 3+ meses', () => {
+  const econ = finance.economicSummary(initialData.finances.ledger);
+  assert.deepEqual([econ.income, econ.excluded], [1523000, 215000]);
+  const r = finance.resilience(initialData.finances.incomeHistory);
+  assert.equal(r.months, 6);
+  assert.ok(r.earnedShare > 0.98 && r.earnedShare < 0.99);
+  assert.ok(r.volatility > 0 && r.volatility < 0.03);
+  assert.equal(finance.resilience(initialData.finances.incomeHistory.slice(0, 2)).volatility, null);
+});
+
+test('reposición: estados, confianza, atípicos y correcciones del usuario', () => {
+  const needs = Object.fromEntries(initialData.household.needs.map((n) => [n.id, n]));
+  const est = (id, extra = {}) => repl.estimateCadence({ need: needs[id], purchases: [...needs[id].purchases, ...(extra.purchases ?? [])], corrections: extra.corrections ?? [], now: NOW });
+  assert.deepEqual([est('milk').state, est('milk').confidence], ['ADD_TO_LIST', 'HIGH']);
+  assert.equal(est('coffee').state, 'OVERDUE');
+  assert.deepEqual([est('detergent').state, est('detergent').confidence], ['WATCH', 'MEDIUM']);
+  assert.deepEqual([est('oil').state, est('oil').confidence], ['NOT_DUE', 'LOW']);
+  assert.equal(est('paper').anomalies, 1, 'el intervalo de 40 días se descarta como atípico');
+  assert.equal(est('shampoo').expectedIntervalDays, 45, 'sin historial usa la semilla manual');
+  assert.equal(est('yerba', { corrections: [{ type: 'OUT', occurredAt: '2026-11-17T12:00:00.000Z' }] }).state, 'ADD_TO_LIST');
+  const still = est('coffee', { corrections: [{ type: 'STILL_HAVE', occurredAt: '2026-11-17T12:00:00.000Z' }] });
+  assert.equal(still.state, 'NOT_DUE');
+  assert.ok(still.nextExpectedAt > '2026-11-17');
+  assert.equal(est('milk', { purchases: [{ purchasedAt: '2026-11-17T12:00:00.000Z' }] }).state, 'NOT_DUE');
+  assert.equal(repl.weightedMedian([10, 30, 20]), 20);
+});
+
+test('salud: scores explicables, desconocido nunca es cero y cobertura mínima', () => {
+  const s = health.healthScores(initialData.health.history);
+  const sleep = s.scores.find((x) => x.id === 'sleep');
+  const cardio = s.scores.find((x) => x.id === 'cardio');
+  assert.equal(sleep.contributors.find((c) => c.id === 'continuity').score, null);
+  assert.equal(cardio.contributors.find((c) => c.id === 'hrv').score, null);
+  assert.ok(cardio.confidence < sleep.confidence, 'sin HRV la confianza cardio baja');
+  assert.equal(s.readiness.score, Math.round(Math.sqrt(sleep.score * cardio.score)));
+  assert.deepEqual([s.coverage.sleep, s.coverage.restingHr, s.coverage.hrv], [27, 26, 0]);
+  const blind = initialData.health.history.map((d) => ({ ...d, restingHr: null }));
+  const r = health.healthScores(blind);
+  assert.equal(r.scores.find((x) => x.id === 'cardio').score, null, 'menos del 50 % de cobertura: sin score');
+  assert.equal(r.readiness.score, null);
+  assert.equal(health.bandFor(85), 'strong');
+  assert.equal(health.bandFor(null), 'insufficient');
+});
+
+test('cardio: MET-min con objetivo del plan y confianza por evidencia', () => {
+  assert.equal(health.cardioTarget(), 2980);
+  assert.deepEqual(health.sessionMet({ modality: 'bike', minutes: 30, watts: 120 }).confidence, 'alta');
+  assert.deepEqual(health.sessionMet({ modality: 'bike', minutes: 30, rpe: 5 }).confidence, 'media');
+  assert.deepEqual(health.sessionMet({ modality: 'bike', minutes: 30 }).confidence, 'baja');
+  const steps = initialData.health.history.slice(-7).reduce((t, d) => t + d.steps, 0);
+  const w = health.weeklyCardio(initialData.gym.cardio, steps);
+  assert.equal(w.total, 2773);
+  assert.deepEqual(w.direct.map((d) => d.done), [54140, 75, 1]);
+  assert.ok(w.equivalents.bikeMinutes > 0);
+});
+
+test('estudio: programador simplificado y respuestas escritas deterministas', () => {
+  const fresh = study.schedule(null, 'good');
+  assert.deepEqual([fresh.state, fresh.dueIn], ['review', 1]);
+  assert.equal(study.schedule(null, 'easy').dueIn, 4);
+  const again = study.schedule(fresh, 'again');
+  assert.deepEqual([again.state, again.dueIn, again.lapses], ['relearning', 0, 1]);
+  const longer = study.schedule(study.schedule(fresh, 'good'), 'good');
+  assert.ok(longer.dueIn > 3);
+  assert.equal(study.previewIntervals(null).good, 'mañana');
+  const card = initialData.decks[1].cards[2];
+  assert.equal(study.checkAnswer(card, '  Sought! ').correct, true);
+  assert.equal(study.checkAnswer(card, 'seeked').correct, false);
+  assert.equal(study.checkAnswer(initialData.decks[0].cards[0], 'x'), null, 'sin respuestas aceptadas no se evalúa');
+});
+
+test('el intérprete reconoce cardio y compras del hogar (con gasto si hay importe)', () => {
+  const data = fresh();
+  const c = { ...ctx(data), needs: data.household.needs.map((n) => ({ id: n.id, name: n.name, category: n.category, aliases: [n.name.toLowerCase(), n.name.split(' ')[0].toLowerCase()] })) };
+  const cardio = parseCapture('Hice 45 minutos de bici con esfuerzo 6', c).intents[0];
+  assert.deepEqual([cardio.kind, cardio.modality, cardio.minutes, cardio.rpe], ['cardio.session', 'bike', 45, 6]);
+  assert.equal(parseCapture('jugué un partido de fútbol de 1,5 horas', c).intents[0].minutes, 90);
+  const buy = parseCapture('Compré leche y café por 9.800', c).intents;
+  assert.deepEqual(buy.map((i) => i.kind), ['household.purchase', 'household.purchase', 'finance.expense']);
+  assert.equal(buy[2].amount, 9800);
+  assert.equal(parseCapture('tomé un vaso de leche', c).intents[0].kind, 'food.entry', 'sin «compré» es una comida');
+});

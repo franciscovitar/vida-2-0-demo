@@ -127,6 +127,32 @@ function parseExpense(clause) {
   return { kind: 'finance.expense', amount: amount ? Number(amount[1].replace(/\./g, '')) : null, categoryId: category, categoryInferred: category === 'other', description, source: clause.trim(), missing: amount ? [] : ['importe'] };
 }
 
+function parseCardio(clause) {
+  const s = strip(clause);
+  const modality = /\b(bici|bicicleta|spinning|ciclismo|pedalee)\b/.test(s) ? 'bike' : /\b(futbol|partido)\b/.test(s) ? 'football' : null;
+  if (!modality) return null;
+  const minutes = /(\d+)\s*(?:min|minutos?)\b/.exec(s);
+  const hours = /(\d+(?:[.,]\d+)?)\s*(?:h|hs|hora|horas)\b/.exec(s);
+  const rpe = /(?:rpe|esfuerzo)\s*(?:de\s*)?(\d{1,2})/.exec(s);
+  const watts = /(\d{2,3})\s*(?:w|watts|vatios)\b/.exec(s);
+  const total = minutes ? Number(minutes[1]) : hours ? Math.round(toNumber(hours[1]) * 60) : null;
+  return { kind: 'cardio.session', modality, minutes: total, rpe: rpe ? Number(rpe[1]) : null, watts: watts ? Number(watts[1]) : null, source: clause.trim(), missing: total == null ? ['minutos'] : [] };
+}
+
+function parseHousehold(clause, needs) {
+  const s = strip(clause);
+  if (!/\bcompr(e|amos|aste)\b/.test(s) || !needs?.length) return [];
+  const found = needs.filter((need) => need.aliases.some((alias) => new RegExp(`\\b${escape(strip(alias))}\\b`).test(s)));
+  if (!found.length) return [];
+  const intents = found.map((need) => ({ kind: 'household.purchase', needId: need.id, needName: need.name, source: clause.trim(), missing: [] }));
+  const amount = /\$?\s*(\d{1,3}(?:\.\d{3})+|\d{3,})(?:,\d+)?/.exec(s);
+  if (amount) {
+    const category = found.some((n) => ['Limpieza', 'Higiene'].includes(n.category)) ? 'home' : 'food';
+    intents.push({ kind: 'finance.expense', amount: Number(amount[1].replace(/\./g, '')), categoryId: category, categoryInferred: false, description: found.map((n) => n.name).join(', '), source: clause.trim(), missing: [] });
+  }
+  return intents;
+}
+
 function parseTask(clause) {
   const m = /^(?:\s*)(?:tengo que|recordame|recordar|anota|anotá|agrega(?:r)? (?:la )?tarea|tarea:?)\s+(.+)$/i.exec(clause.trim());
   if (!m) return null;
@@ -146,6 +172,10 @@ export function parseCapture(text, ctx) {
   for (const clause of clauses) {
     const task = parseTask(clause);
     if (task) { intents.push(task); continue; }
+    const cardio = parseCardio(clause);
+    if (cardio) { intents.push(cardio); continue; }
+    const household = parseHousehold(clause, ctx.needs);
+    if (household.length) { intents.push(...household); continue; }
     const expense = parseExpense(clause);
     if (expense) { intents.push(expense); continue; }
     // Las comas separan frases, salvo la coma decimal (37,5 kg).
@@ -164,4 +194,6 @@ export const CAPTURE_EXAMPLES = Object.freeze([
   'En el almuerzo comí 150 g de arroz, una porción de pollo y una manzana',
   'Gasté 12.500 en el supermercado',
   'Tengo que preparar la retrospectiva del sprint',
+  'Hice 45 minutos de bici con esfuerzo 6',
+  'Compré leche y café por 9.800',
 ]);

@@ -39,6 +39,18 @@ export function validateIntent(data, intent) {
       if (String(intent.description ?? '').trim().length > 60) errors.description = 'Máximo 60 caracteres.';
       return { ok: !Object.keys(errors).length, errors };
     }
+    case 'cardio.session': {
+      const errors = {};
+      const blank = (v) => v == null || String(v).trim() === '';
+      const minutes = Number(intent.minutes);
+      if (blank(intent.minutes) || !Number.isInteger(minutes) || minutes < 5 || minutes > 300) errors.minutes = 'Entre 5 y 300 minutos.';
+      if (!blank(intent.rpe) && (!Number.isInteger(Number(intent.rpe)) || intent.rpe < 1 || intent.rpe > 10)) errors.rpe = 'Esfuerzo entre 1 y 10.';
+      if (!blank(intent.watts) && (!Number.isInteger(Number(intent.watts)) || intent.watts < 20 || intent.watts > 600)) errors.watts = 'Potencia entre 20 y 600 W.';
+      if (!['bike', 'football'].includes(intent.modality)) errors.modality = 'Elegí bici o fútbol.';
+      return { ok: !Object.keys(errors).length, errors };
+    }
+    case 'household.purchase':
+      return data.household.needs.some((n) => n.id === intent.needId) ? { ok: true, errors: {} } : { ok: false, errors: { needId: 'Elegí un producto con historial.' } };
     case 'task.create': {
       const title = String(intent.title ?? '').trim();
       const errors = title.length < 3 ? { title: 'Escribí al menos 3 caracteres.' } : title.length > 120 ? { title: 'Máximo 120 caracteres.' } : {};
@@ -74,8 +86,19 @@ export function applyIntent(data, intent) {
       const amount = Number(intent.amount);
       const category = data.finances.categories.find((c) => c.id === intent.categoryId);
       category.spent += amount;
+      // Un gasto pagado sale de la liquidez elegible: Safe-to-Spend lo refleja de inmediato.
+      data.finances.planning.liquidity = Math.max(0, data.finances.planning.liquidity - amount);
       data.finances.movements.unshift({ id: nextId(data, 'mov'), date: data.today, description: String(intent.description ?? '').trim() || 'Gasto registrado', categoryId: category.id, amount });
       return `gasto de $ ${new Intl.NumberFormat('es-AR').format(amount)} en ${category.name}`;
+    }
+    case 'cardio.session': {
+      const optional = (v) => (v == null || String(v).trim() === '' ? null : Number(v));
+      data.gym.cardio.push({ id: nextId(data, 'cardio'), date: data.today, modality: intent.modality, minutes: Number(intent.minutes), rpe: optional(intent.rpe), watts: optional(intent.watts) });
+      return `${intent.modality === 'bike' ? 'bici' : 'fútbol'} ${intent.minutes} min`;
+    }
+    case 'household.purchase': {
+      recordPurchase(data, intent.needId);
+      return `compra de ${data.household.needs.find((n) => n.id === intent.needId).name}`;
     }
     case 'task.create': {
       const title = String(intent.title).trim();
@@ -96,6 +119,42 @@ export function editSet(data, setId, values) {
   if (exercise.mode === 'time') set.seconds = Number(values.seconds);
   else { set.kg = Number(values.kg); set.reps = Number(values.reps); }
   return result;
+}
+
+/** Momento de la demo con un contador para mantener el orden de los eventos del día. */
+const stamp = (data) => `${data.today}T12:${String(Math.min(59, (data.seq ?? 0))).padStart(2, '0')}:00.000Z`;
+
+/** Registra una compra de un producto del hogar y tacha la sugerencia de la lista si estaba. */
+export function recordPurchase(data, needId, ref = null) {
+  data.household.extraPurchases.push({ id: ref ?? nextId(data, 'purchase'), needId, purchasedAt: stamp(data) });
+  for (const item of data.shopping) if (item.needId === needId && !item.checked) item.checked = true;
+}
+
+export function recordCorrection(data, needId, type) {
+  data.household.corrections.push({ id: nextId(data, 'corr'), needId, type, occurredAt: stamp(data) });
+}
+
+/** Agrega a la lista un producto sugerido por la reposición. */
+export function addRestockToList(data, needId) {
+  const need = data.household.needs.find((n) => n.id === needId);
+  if (!need || data.shopping.some((i) => i.needId === needId && !i.checked)) return false;
+  data.shopping.push({ id: nextId(data, 'item'), needId, name: need.name, category: need.category, amount: need.amount, checked: false });
+  return true;
+}
+
+export function addEpisode(data, seriesId) {
+  const series = data.series.find((s) => s.id === seriesId);
+  const season = series?.seasons.find((s) => s.watched < s.episodes);
+  if (!season) return null;
+  season.watched += 1;
+  return `${series.title} T${season.n}E${season.watched}`;
+}
+
+export function rateSeason(data, seriesId, n, rating) {
+  const season = data.series.find((s) => s.id === seriesId)?.seasons.find((s) => s.n === n);
+  if (!season || season.watched < season.episodes || !(rating >= 1 && rating <= 5)) return false;
+  season.rating = season.rating === rating ? null : rating;
+  return true;
 }
 
 /** Marca o desmarca una serie planificada (`press-1`) con la carga y repeticiones del plan. */

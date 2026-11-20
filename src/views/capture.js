@@ -3,8 +3,8 @@ import { CAPTURE_EXAMPLES } from '../domain/capture.js';
 import { esc, fieldError, icon } from './ui.js';
 
 const MOMENTS = ['Desayuno', 'Almuerzo', 'Merienda', 'Cena', 'Colación'];
-const KIND_LABEL = { 'gym.set': 'Gimnasio · serie', 'food.entry': 'Nutrición · alimento', 'finance.expense': 'Finanzas · gasto', 'task.create': 'Organizar · tarea' };
-const KIND_AREA = { 'gym.set': 'care', 'food.entry': 'care', 'finance.expense': 'life', 'task.create': 'org' };
+const KIND_LABEL = { 'gym.set': 'Gimnasio · serie', 'food.entry': 'Nutrición · alimento', 'finance.expense': 'Finanzas · gasto', 'task.create': 'Organizar · tarea', 'cardio.session': 'Gimnasio · cardio', 'household.purchase': 'Compras · reposición' };
+const KIND_AREA = { 'gym.set': 'care', 'food.entry': 'care', 'finance.expense': 'life', 'task.create': 'org', 'cardio.session': 'care', 'household.purchase': 'life' };
 
 const input = (name, label, value, attrs = '', err = '') => `<label class="field"><span>${label}</span><input name="${name}" value="${esc(value ?? '')}" ${attrs}/>${err}</label>`;
 const select = (name, label, options, value) => `<label class="field"><span>${label}</span><select name="${name}">${options.map(([v, l]) => `<option value="${esc(v)}" ${String(v) === String(value) ? 'selected' : ''}>${esc(l)}</option>`).join('')}</select></label>`;
@@ -34,6 +34,13 @@ function intentFields(intent, data, errors) {
         ${input(`${k}.description`, 'Descripción', intent.description, 'maxlength="60"', fieldError(e, 'description'))}`;
     case 'task.create':
       return input(`${k}.title`, 'Tarea', intent.title, 'maxlength="120" class="wide"', fieldError(e, 'title'));
+    case 'cardio.session':
+      return `${select(`${k}.modality`, 'Modalidad', [['bike', 'Bici'], ['football', 'Fútbol']], intent.modality)}
+        ${input(`${k}.minutes`, 'Minutos', intent.minutes, 'type="number" inputmode="numeric" min="5" max="300"', fieldError(e, 'minutes'))}
+        ${input(`${k}.rpe`, 'Esfuerzo 1–10', intent.rpe, 'type="number" inputmode="numeric" min="1" max="10"', fieldError(e, 'rpe'))}
+        ${input(`${k}.watts`, 'Potencia (W)', intent.watts, 'type="number" inputmode="numeric" min="20" max="600"', fieldError(e, 'watts'))}`;
+    case 'household.purchase':
+      return `${select(`${k}.needId`, 'Producto', data.household.needs.map((n) => [n.id, n.name]), intent.needId)}<p class="muted small">Se suma al historial de compras: la reposición recalcula cuándo volver a comprarlo.</p>`;
     default:
       return '';
   }

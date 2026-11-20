@@ -267,7 +267,7 @@ const logic = await import('./logic.js');
 test('la navegación por áreas agrupa los 11 módulos y muestra los segmentos del área', () => {
   ui.click({ action: 'reset' });
   const groups = Object.values(logic.AREAS).map((area) => area.tabs);
-  assert.deepEqual(groups.flat().sort(), ['agenda', 'compras', 'finanzas', 'gimnasio', 'ingles', 'mazos', 'nutricion', 'peliculas', 'proyectos', 'salud', 'tareas']);
+  assert.deepEqual(groups.flat().sort(), ['agenda', 'compras', 'finanzas', 'gimnasio', 'informacion', 'ingles', 'mazos', 'nutricion', 'peliculas', 'proyectos', 'salud', 'tareas']);
   ui.click({ tab: 'gimnasio' });
   assert.match(ui.panel.innerHTML, /class="subnav a-care" aria-label="Cuidarme"/);
   assert.match(ui.panel.innerHTML, /data-tab="gimnasio" aria-current="page"/);
@@ -509,4 +509,130 @@ test('«Cómo funciona» explica el sistema real y distingue lo que la demo simu
   ui.click({ systemMode: 'demo' });
   assert.match(ui.panel.innerHTML, /Intérprete local por reglas/);
   assert.match(ui.panel.innerHTML, /No hay IA ni red/);
+});
+
+/* ───────── Etapa 4: flujos con relaciones entre módulos ───────── */
+
+test('finanzas: Safe-to-Spend reacciona a un gasto registrado y el simulador explica el escenario', () => {
+  ui.click({ action: 'reset' });
+  ui.click({ tab: 'finanzas' });
+  ui.click({ financeTab: 'capacity' });
+  assert.match(ui.panel.innerHTML, /\$ 222\.000<span> libres para gastar/);
+  app.__test.submit('purchase', { amount: '400000' });
+  assert.match(ui.panel.innerHTML, /usaría dinero ya comprometido/);
+  assert.doesNotMatch(ui.panel.innerHTML, /te recomendamos|no compres/i);
+  app.__test.submit('purchase', { amount: 'abc' });
+  assert.match(ui.panel.innerHTML, /Ingresá un importe entero mayor que 0/);
+  ui.click({ openCapture: 'expense' });
+  app.__test.submit('quick', { amount: '12500', categoryId: 'food', description: 'Verdulería' });
+  assert.match(ui.panel.innerHTML, /\$ 209\.500<span> libres para gastar/);
+  ui.click({ financeTab: 'movements' });
+  assert.match(ui.panel.innerHTML, /Transferencia entre cuentas propias/);
+  ui.click({ movementFilter: 'expense' });
+  assert.match(ui.panel.innerHTML, /Verdulería/);
+  assert.doesNotMatch(ui.panel.innerHTML, /Sueldo/);
+  ui.click({ financeTab: 'resilience' });
+  assert.match(ui.panel.innerHTML, /Volatilidad mensual/);
+});
+
+test('compras: la reposición sugiere, la lista registra la compra y la estimación se recalcula', () => {
+  ui.click({ action: 'reset' });
+  ui.click({ tab: 'compras' });
+  ui.click({ shoppingTab: 'restock' });
+  assert.match(ui.panel.innerHTML, /Café molido[\s\S]*?Vencido/);
+  ui.click({ restockAdd: 'coffee' });
+  ui.click({ shoppingTab: 'list' });
+  assert.match(ui.panel.innerHTML, /Café molido[\s\S]*?Sugerido por reposición/);
+  const item = app.__test.data.shopping.find((i) => i.needId === 'coffee');
+  ui.change(item.id, 'shoppingCheck', true);
+  assert.equal(app.__test.data.household.extraPurchases.length, 1);
+  ui.click({ shoppingTab: 'restock' });
+  assert.doesNotMatch(ui.panel.innerHTML, /Café molido<\/strong>[\s\S]{0,200}Vencido/);
+  ui.change(item.id, 'shoppingCheck', false);
+  assert.equal(app.__test.data.household.extraPurchases.length, 0, 'destildar revierte la compra');
+  ui.click({ restockCorrect: 'yerba:OUT' });
+  assert.match(ui.panel.innerHTML, /Yerba[\s\S]*?Para agregar[\s\S]*?corregido: «se acabó»/);
+});
+
+test('salud: resumen con scores explicables, contexto de otros módulos y cobertura', () => {
+  ui.click({ action: 'reset' });
+  ui.click({ tab: 'salud' });
+  assert.match(ui.panel.innerHTML, /Disposición de hoy/);
+  ui.click({ healthScore: 'sleep' });
+  assert.match(ui.panel.innerHTML, /Continuidad<\/strong><span class="mono">sin dato/);
+  assert.match(ui.panel.innerHTML, /Cardio semanal<\/span><strong class="mono">93 %/);
+  ui.click({ healthTab: 'coverage' });
+  assert.match(ui.panel.innerHTML, /FC en reposo<small class="mono">26\/28/);
+  assert.match(ui.panel.innerHTML, /HRV<small class="mono">0\/28/);
+});
+
+test('gimnasio: registrar cardio actualiza MET-min en Gimnasio y en Salud', () => {
+  ui.click({ action: 'reset' });
+  ui.click({ tab: 'gimnasio' });
+  ui.click({ gymTab: 'cardio' });
+  assert.match(ui.panel.innerHTML, /2\.773<span> de 2\.980 MET-min/);
+  app.__test.submit('cardio', { modality: 'football', minutes: '60', rpe: '', watts: '' });
+  assert.match(ui.panel.innerHTML, /3\.193<span> de 2\.980 MET-min/);
+  assert.match(ui.panel.innerHTML, /107 %/);
+  app.__test.submit('cardio', { modality: 'bike', minutes: '2', rpe: '', watts: '' });
+  assert.match(ui.panel.innerHTML, /Entre 5 y 300 minutos/);
+  ui.click({ tab: 'salud' });
+  assert.match(ui.panel.innerHTML, /Cardio semanal<\/span><strong class="mono">107 %/);
+});
+
+test('estudio: respuesta escrita, calificación y próximos repasos', () => {
+  ui.click({ action: 'reset' });
+  ui.click({ tab: 'mazos' });
+  ui.click({ deck: 'english' });
+  ui.click({ nextCard: '' });
+  ui.click({ nextCard: '' });
+  assert.match(ui.panel.innerHTML, /past tense of “seek”/);
+  app.__test.submit('answer', { answer: 'Sought' }, { card: 'english:2' });
+  assert.match(ui.panel.innerHTML, /¡Correcto!/);
+  assert.match(ui.panel.innerHTML, /Respuesta/);
+  ui.click({ cardRate: 'easy' });
+  assert.match(ui.panel.innerHTML, /Próximos repasos de este mazo/);
+  assert.match(ui.panel.innerHTML, /en 4 días/);
+  assert.match(ui.panel.innerHTML, /0 nuevas · 0 en sesión · 3 programadas/);
+});
+
+test('películas y series: progreso por episodio, calificación por temporada y resumen', () => {
+  ui.click({ action: 'reset' });
+  ui.click({ tab: 'peliculas' });
+  ui.click({ mediaTab: 'series' });
+  assert.match(ui.panel.innerHTML, /13\/16 episodios/);
+  ui.click({ episode: 'faro' });
+  assert.match(ui.panel.innerHTML, /14\/16 episodios/);
+  ui.click({ seasonRate: 'orbita:1:3' });
+  assert.match(ui.panel.innerHTML, /data-season-rate="orbita:1:3" aria-pressed="true"/);
+  ui.click({ seriesFilter: 'planned' });
+  assert.match(ui.panel.innerHTML, /Cocina de barrio/);
+  assert.doesNotMatch(ui.panel.innerHTML, /Faro norte/);
+  ui.click({ mediaTab: 'summary' });
+  assert.match(ui.panel.innerHTML, /Episodios vistos<\/dt><dd class="mono">24/);
+});
+
+test('centro de información: piezas de ejemplo con procedencia, feedback canónico y automatizaciones simuladas', () => {
+  ui.click({ action: 'reset' });
+  ui.click({ tab: 'informacion' });
+  assert.match(ui.panel.innerHTML, /pieza de ejemplo/);
+  assert.match(ui.panel.innerHTML, /no son noticias/);
+  ui.click({ infoFront: 'tecnologia' });
+  assert.match(ui.panel.innerHTML, /Idempotencia con un ejemplo/);
+  assert.doesNotMatch(ui.panel.innerHTML, /Cómo leer una búsqueda full-stack/);
+  ui.click({ infoOpen: 'p-idempotency' });
+  assert.match(ui.panel.innerHTML, /Procedencia:/);
+  assert.equal((ui.panel.innerHTML.match(/data-info-feedback="p-idempotency:/g) ?? []).length, 6);
+  ui.click({ infoFeedback: 'p-idempotency:WANT_DEEPER' });
+  assert.match(ui.panel.innerHTML, /data-info-feedback="p-idempotency:WANT_DEEPER" aria-pressed="true"/);
+  ui.click({ infoTab: 'radar' });
+  assert.match(ui.panel.innerHTML, /Evaluar ahora/);
+  ui.click({ infoTab: 'automations' });
+  ui.click({ automationToggle: 'daily-briefing' });
+  ui.click({ automationRun: 'daily-briefing' });
+  assert.match(ui.panel.innerHTML, /Pausada: el kill switch impidió la ejecución/);
+  app.__test.undo();
+  app.__test.undo();
+  ui.click({ automationRun: 'daily-briefing' });
+  assert.match(ui.panel.innerHTML, /Ejecución manual simulada/);
 });

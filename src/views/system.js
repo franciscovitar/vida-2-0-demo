@@ -54,18 +54,22 @@ const COMPARE = [
 ];
 
 const CAPABILITIES = [
-  ['impl', 'Comparaciones de fuerza con e1RM (Epley, 1–15 reps, ±2 % estable)', true],
-  ['impl', 'Cardio semanal en MET-min con nivel de confianza', false],
-  ['impl', 'Nutrición con cobertura: desconocido nunca es cero', true],
-  ['impl', 'Scores de salud explicables con contribuyentes y confianza', false],
-  ['impl', 'Motor de estudio con FSRS e intentos offline idempotentes', false],
-  ['impl', 'Reposición del hogar por cadencia (mediana robusta, confianza)', false],
-  ['impl', 'Importadores de Mercado Pago y Naranja X, Safe-to-Spend', false],
-  ['flag', 'Escrituras seguras: política, confirmación, rollback cifrado', false],
-  ['flag', 'API OpenClaw HMAC: solo lectura + propuestas pendientes', false],
-  ['flag', 'Automatizaciones con kill switches y store cifrado', false],
-  ['draft', 'Rhythm Stability (calculadora pura, no conectada a la UI)', false],
+  ['impl', 'Comparaciones de fuerza con e1RM (Epley, 1–15 reps, ±2 % estable)', 'demo'],
+  ['impl', 'Cardio semanal en MET-min con nivel de confianza', 'demo'],
+  ['impl', 'Nutrición con cobertura: desconocido nunca es cero', 'demo'],
+  ['impl', 'Scores de salud explicables con contribuyentes y confianza', 'adapted'],
+  ['impl', 'Motor de estudio con FSRS e intentos offline idempotentes', 'adapted'],
+  ['impl', 'Reposición del hogar por cadencia (mediana robusta, confianza)', 'demo'],
+  ['impl', 'Safe-to-Spend, simulador de compra y resiliencia de ingresos', 'demo'],
+  ['impl', 'Importadores de Mercado Pago y Naranja X con conciliación', null],
+  ['impl', 'Lecturas publicadas con procedencia y feedback explícito', 'adapted'],
+  ['flag', 'Escrituras seguras: política, confirmación, rollback cifrado', null],
+  ['flag', 'API OpenClaw HMAC: solo lectura + propuestas pendientes', null],
+  ['flag', 'Automatizaciones con kill switches y store cifrado', 'adapted'],
+  ['draft', 'Rhythm Stability (calculadora pura, no conectada a la UI)', null],
 ];
+
+const IN_DEMO = { demo: ['También en la demo', 'a-org'], adapted: ['Adaptado en la demo', 'a-life'] };
 
 const STATUS = { impl: 'Implementado', flag: 'Detrás de feature flag', draft: 'En desarrollo' };
 
@@ -93,7 +97,7 @@ export function systemView(ui) {
     </section>
     <section class="card" aria-labelledby="cap-title">
       <div class="card-head"><h2 id="cap-title">Capacidades del sistema original</h2><span class="muted small">verificadas en el código</span></div>
-      <ul class="cap-list">${CAPABILITIES.map(([s, text, inDemo]) => `<li><span class="status-pill is-${s}">${STATUS[s]}</span><span>${text}</span>${inDemo ? '<span class="tag a-org">También en la demo</span>' : ''}</li>`).join('')}</ul>
+      <ul class="cap-list">${CAPABILITIES.map(([s, text, inDemo]) => `<li><span class="status-pill is-${s}">${STATUS[s]}</span><span>${text}</span>${inDemo ? `<span class="tag ${IN_DEMO[inDemo][1]}">${IN_DEMO[inDemo][0]}</span>` : ''}</li>`).join('')}</ul>
     </section>
     <details class="card engineering">
       <summary><span><strong>Detalles de ingeniería</strong><span class="muted small"> · para lectores técnicos</span></span>${icon('chevron', 16)}</summary>

@@ -1,6 +1,7 @@
 /** Vista Gimnasio: sesión de hoy con registro de series, progreso (e1RM) e historial. Plantillas puras. */
 import { formatDecimal, formatNumber, parseExercise } from '../../logic.js';
 import { STABLE_BAND, bestSet, e1rmSeries, epley, muscleSets, sessionSummary, setVolume, weeklyVolume } from '../domain/gym.js';
+import { weeklyCardio } from '../domain/health.js';
 import { esc, fieldError, icon, note, pageHead, pct, segments, shortDate, tabs, vars } from './ui.js';
 
 export const withMeta = (gym) => ({ ...gym, exercises: gym.exercises.map((e) => ({ ...e, ...gym.exerciseMeta[e.id] })) });
@@ -158,12 +159,52 @@ function historialTab(data, gym, summary) {
   }).join('')}</ol>`;
 }
 
+const MODALITY = { bike: 'Bici', football: 'Fútbol' };
+
+function cardioTab(data, ui) {
+  const stepsWeek = data.health.history.slice(-7).reduce((t, d) => t + (d.steps ?? 0), 0);
+  const w = weeklyCardio(data.gym.cardio, stepsWeek);
+  const err = ui.formErrors.cardio ?? {};
+  const draft = ui.cardioDraft;
+  return `
+    <section class="card cardio-hero" aria-labelledby="met-title">
+      <div class="card-head"><div><p class="eyebrow a-care">Carga semanal equivalente</p><h2 id="met-title" class="hero-number mono">${formatNumber(w.total)}<span> de ${formatNumber(w.target)} MET-min</span></h2></div><span class="state-pill ${w.ratio >= 1 ? 'is-add' : 'is-watch'}">${Math.round(w.ratio * 100)} %</span></div>
+      <span class="bar bar-lg a-care" ${vars({ w: pct(w.ratio * 100) })}><span></span></span>
+      <p class="muted small">Objetivo derivado del plan: 8.000 pasos/día, 120 min de bici Zona 2 y 1 partido por semana. Es una equivalencia práctica de cumplimiento, no una medición de gasto energético.</p>
+    </section>
+    <div class="split even">
+      <section class="card" aria-labelledby="direct-title">
+        <h2 id="direct-title">Cumplimiento directo</h2>
+        <ul class="hbars direct">${w.direct.map((d) => `<li><span>${d.label}</span><span class="bar a-care" ${vars({ w: pct((d.done / d.goal) * 100) })}><span></span></span><span class="mono">${formatNumber(d.done)}/${formatNumber(d.goal)}</span></li>`).join('')}</ul>
+        ${w.equivalents ? `<p class="muted small">Para cubrir los ${formatNumber(w.target - w.total)} MET-min restantes con una sola modalidad: ≈${formatNumber(w.equivalents.steps)} pasos, ${w.equivalents.bikeMinutes} min de bici o ${formatDecimal(w.equivalents.matches)} partidos. Comparativo, no una sugerencia de reemplazar el plan.</p>` : '<p class="muted small">La equivalencia semanal está cubierta. Puede superar el 100 %; más no es automáticamente mejor.</p>'}
+      </section>
+      <section class="card" aria-labelledby="sessions-title">
+        <h2 id="sessions-title">Sesiones de la semana</h2>
+        <ul class="movements">
+          <li><span><strong>Pasos (7 días)</strong><small>proxy 100 pasos/min × 3,5 MET · confianza baja</small></span><span class="mono">${formatNumber(w.stepsMetMin)}</span></li>
+          ${w.items.map((s) => `<li><span><strong>${MODALITY[s.modality]} · ${s.minutes} min</strong><small>${shortDate(s.date)} · ${formatDecimal(s.met)} MET por ${s.basis} · confianza ${s.confidence}</small></span><span class="mono">${formatNumber(s.metMin)}</span></li>`).join('')}
+        </ul>
+      </section>
+    </div>
+    <form class="card add-food" data-capture-form="cardio" novalidate aria-labelledby="cardio-add-title">
+      <h2 id="cardio-add-title">Registrar cardio</h2>
+      <div class="form-grid">
+        <label class="field"><span>Modalidad</span><select name="modality">${Object.entries(MODALITY).map(([id, label]) => `<option value="${id}" ${draft.modality === id ? 'selected' : ''}>${label}</option>`).join('')}</select></label>
+        <label class="field"><span>Minutos</span><input name="minutes" type="number" inputmode="numeric" min="5" max="300" value="${draft.minutes}" required/>${fieldError(err, 'minutes')}</label>
+        <label class="field"><span>Esfuerzo percibido (1–10, opcional)</span><input name="rpe" type="number" inputmode="numeric" min="1" max="10" value="${draft.rpe ?? ''}"/>${fieldError(err, 'rpe')}</label>
+        <label class="field"><span>Potencia media en W (opcional)</span><input name="watts" type="number" inputmode="numeric" min="20" max="600" value="${draft.watts ?? ''}"/>${fieldError(err, 'watts')}</label>
+      </div>
+      <p class="muted small">Con potencia la confianza es alta; con esfuerzo percibido, media; sin ninguno, baja.</p>
+      <button type="submit" class="btn btn-dark">${icon('check', 16)} Agregar sesión</button>
+    </form>`;
+}
+
 export function gymView(data, ui) {
   const gym = withMeta(data.gym);
   const summary = sessionSummary(gym, data.gym.today);
   const tab = ui.gymTab;
   return `${pageHead('Sesión de hoy', 'Progresá a tu ritmo.', `${gym.exercises.length} ejercicios planificados · historial de ${gym.history.length} sesiones. Registrá series y mirá cómo cambian tus comparaciones.`)}
-    ${tabs('gym-tab', tab, [['hoy', 'Hoy'], ['progreso', 'Progreso'], ['historial', 'Historial']])}
-    ${tab === 'progreso' ? progresoTab(data, ui, gym) : tab === 'historial' ? historialTab(data, gym, summary) : hoyTab(data, ui, gym, summary)}
+    ${tabs('gym-tab', tab, [['hoy', 'Hoy'], ['progreso', 'Progreso'], ['cardio', 'Cardio'], ['historial', 'Historial']])}
+    ${tab === 'progreso' ? progresoTab(data, ui, gym) : tab === 'cardio' ? cardioTab(data, ui) : tab === 'historial' ? historialTab(data, gym, summary) : hoyTab(data, ui, gym, summary)}
     ${note('Rutina y pesos ficticios. No son una prescripción de entrenamiento.')}`;
 }

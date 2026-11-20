@@ -2,7 +2,7 @@
  * Persona, proyectos y eventos completamente inventados para un showcase público.
  * Ningún dato se importa desde los mocks personales ni desde las integraciones de Vida 2.0.
  */
-import { EXERCISE_META, FOOD_CATALOG, GYM_HISTORY, NUTRITION_HISTORY } from './src/data/synthetic.js';
+import { AUTOMATIONS, CARDIO_WEEK, EXERCISE_META, INFO_PIECES, TECH_RADAR, FOOD_CATALOG, GYM_HISTORY, HEALTH_HISTORY, HOUSEHOLD_NEEDS, NUTRITION_HISTORY, SERIES } from './src/data/synthetic.js';
 
 export const initialData = Object.freeze({
   /** Fecha ISO del escenario (martes 17/11/2026). */
@@ -49,6 +49,8 @@ export const initialData = Object.freeze({
     stepsTrend: [6800, 7900, 7200, 9300, 8300, 6400, 8240],
     activityTrend: [24, 38, 46, 31, 52, 20, 42],
     trendLabels: ['Mié', 'Jue', 'Vie', 'Sáb', 'Dom', 'Lun', 'Hoy'],
+    /** 28 días sintéticos; los últimos 7 coinciden con las tendencias de arriba. */
+    history: HEALTH_HISTORY,
   },
   gym: {
     completed: false,
@@ -65,6 +67,8 @@ export const initialData = Object.freeze({
     history: GYM_HISTORY,
     /** Series registradas hoy (planificadas marcadas o agregadas por el visitante). */
     today: [],
+    /** Sesiones de cardio de los últimos 7 días (para MET-min). */
+    cardio: CARDIO_WEEK,
   },
   nutrition: {
     targetCalories: 2200,
@@ -93,8 +97,8 @@ export const initialData = Object.freeze({
     ] },
     { id: 'english', title: 'Inglés cotidiano', topic: 'Idiomas', color: 'blue', cards: [
       { front: 'What does “figure out” mean?', back: 'Significa resolver o comprender algo después de pensarlo.' },
-      { front: 'How do you say “lo antes posible”?', back: 'As soon as possible.' },
-      { front: 'What is the past tense of “seek”?', back: 'Sought.' },
+      { front: 'How do you say “lo antes posible”?', back: 'As soon as possible.', accepted: ['as soon as possible', 'asap'] },
+      { front: 'What is the past tense of “seek”?', back: 'Sought.', accepted: ['sought'] },
     ] },
     { id: 'finance', title: 'Finanzas personales', topic: 'Vida diaria', color: 'amber', cards: [
       { front: '¿Qué es un gasto fijo?', back: 'Un gasto recurrente cuya frecuencia o importe suele ser previsible.' },
@@ -125,6 +129,34 @@ export const initialData = Object.freeze({
     monthLabels: ['Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov'],
     /** Movimientos registrados durante la visita (vacío al inicio). */
     movements: [],
+    /** Planificación para Safe-to-Spend (ARS, enteros). */
+    planning: {
+      liquidity: 980000,
+      reserve: 300000,
+      obligations: [
+        { id: 'card', label: 'Resumen de tarjeta', amount: 118000, due: '2026-11-25' },
+        { id: 'rent', label: 'Alquiler de diciembre', amount: 260000, due: '2026-12-05' },
+      ],
+      goals: [{ id: 'trip', label: 'Fondo de viaje', amount: 80000 }],
+      other: [],
+      essentialMonthly: 640000,
+    },
+    /** Ingresos económicos por mes: trabajo y otros (financieros). */
+    incomeHistory: [
+      { month: 'Jun', work: 1450000, other: 18000 },
+      { month: 'Jul', work: 1500000, other: 21000 },
+      { month: 'Ago', work: 1500000, other: 19500 },
+      { month: 'Sep', work: 1550000, other: 22000 },
+      { month: 'Oct', work: 1500000, other: 20500 },
+      { month: 'Nov', work: 1500000, other: 23000 },
+    ],
+    /** Movimientos destacados del mes, con su clase económica (las transferencias no cuentan). */
+    ledger: [
+      { id: 'l-salary', date: '2026-11-03', description: 'Sueldo', kind: 'income', amount: 1500000 },
+      { id: 'l-interest', date: '2026-11-05', description: 'Rendimiento de cuenta remunerada', kind: 'income', amount: 23000 },
+      { id: 'l-transfer', date: '2026-11-06', description: 'Transferencia entre cuentas propias', kind: 'transfer', amount: 200000 },
+      { id: 'l-refund', date: '2026-11-09', description: 'Reintegro de un gasto compartido', kind: 'transfer', amount: 15000 },
+    ],
   },
   shopping: [
     { id: 'apples', name: 'Manzanas', category: 'Verdulería', amount: '1 kg', checked: false },
@@ -140,4 +172,11 @@ export const initialData = Object.freeze({
     { id: 'seasons', title: 'Las cuatro estaciones', genre: 'Aventura', year: 2025, color: 'green', watched: false, rating: null, symbol: '❋' },
     { id: 'lastlight', title: 'La última luz', genre: 'Suspenso', year: 2023, color: 'amber', watched: true, rating: 5, symbol: '☼' },
   ],
+  /** Reposición del hogar: historial de compras por producto y correcciones del usuario. */
+  household: { needs: HOUSEHOLD_NEEDS, corrections: [], extraPurchases: [] },
+  series: SERIES,
+  /** Centro de información: piezas de ejemplo, feedback del visitante, radar y automatizaciones simuladas. */
+  info: { pieces: INFO_PIECES, feedback: {}, radar: TECH_RADAR, automations: AUTOMATIONS },
+  /** Estado de repaso por tarjeta (`mazo:índice`). */
+  study: {},
 });
