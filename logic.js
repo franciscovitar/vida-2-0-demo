@@ -4,9 +4,9 @@
  */
 
 export const AREAS = Object.freeze({
-  org: { key: 'org', name: 'Organizar', tabs: ['tareas', 'proyectos', 'agenda'] },
+  org: { key: 'org', name: 'Organizar', tabs: ['tareas', 'proyectos', 'agenda', 'plan'] },
   care: { key: 'care', name: 'Cuidarme', tabs: ['salud', 'gimnasio', 'nutricion'] },
-  learn: { key: 'learn', name: 'Aprender', tabs: ['mazos', 'ingles'] },
+  learn: { key: 'learn', name: 'Aprender', tabs: ['mazos', 'ingles', 'informacion'] },
   life: { key: 'life', name: 'Vivir', tabs: ['finanzas', 'compras', 'peliculas'] },
 });
 
@@ -16,6 +16,9 @@ export const LABELS = Object.freeze({
   salud: 'Salud', gimnasio: 'Gimnasio', nutricion: 'Nutrición',
   mazos: 'Mazos de estudio', ingles: 'Inglés',
   finanzas: 'Finanzas', compras: 'Compras', peliculas: 'Películas',
+  informacion: 'Centro de información',
+  plan: 'Plan y logros',
+  sistema: 'Cómo funciona',
 });
 
 export function areaOfTab(tab) {
@@ -120,23 +123,6 @@ export function parseExercise(exercise) {
   const kg = Number.parseFloat(exercise.weight) || 0;
   const repsNumber = /s$/.test(reps) ? 0 : Number.parseInt(reps, 10) || 0;
   return { sets: Number.parseInt(sets, 10) || 0, reps, kg, repsNumber };
-}
-
-export function gymSummary(data, doneSets) {
-  let done = 0;
-  let total = 0;
-  let lifted = 0;
-  for (const exercise of data.gym.exercises) {
-    const parsed = parseExercise(exercise);
-    total += parsed.sets;
-    for (let n = 1; n <= parsed.sets; n += 1) {
-      if (doneSets[`${exercise.id}-${n}`]) {
-        done += 1;
-        lifted += parsed.kg * parsed.repsNumber;
-      }
-    }
-  }
-  return { done, total, lifted, sessions: data.gym.sessionsThisWeek + (data.gym.completed ? 1 : 0), goal: data.gym.goal };
 }
 
 export function formatDecimal(value, digits = 1) {

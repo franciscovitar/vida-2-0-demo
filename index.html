@@ -5,9 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#F6F8FC" />
     <meta name="description" content="Explorá Vida 2.0: organización, bienestar, aprendizaje y vida cotidiana en un mismo espacio. Demo interactiva con datos ficticios." />
-    <meta name="robots" content="noindex, nofollow" />
+    <meta name="robots" content="index, follow" />
     <meta property="og:title" content="Vida 2.0 — Demo pública" />
     <meta property="og:description" content="Una demo interactiva para organizar el día, cuidar hábitos, aprender y llevar las finanzas. Sin cuentas, con datos ficticios." />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="https://vida-2-0-demo-genova.vercel.app/og-cover.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta name="twitter:card" content="summary_large_image" />
     <title>Vida 2.0 — Demo pública</title>
     <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
     <link rel="preload" href="./fonts/geist.woff2" as="font" type="font/woff2" crossorigin />
@@ -26,17 +31,20 @@
       <label class="jump" for="mobile-nav">
         <span data-icon="search"></span>
         <span class="jump-prefix">Ir a<span class="sr-only"> un módulo</span></span>
-        <select id="mobile-nav">
+        <select id="mobile-nav" aria-label="Ir a un módulo">
           <option value="hoy">Hoy</option>
-          <optgroup label="Organizar"><option value="tareas">Tareas y hábitos</option><option value="proyectos">Proyectos</option><option value="agenda">Agenda</option></optgroup>
+          <optgroup label="Organizar"><option value="tareas">Tareas y hábitos</option><option value="proyectos">Proyectos</option><option value="agenda">Agenda</option><option value="plan">Plan y logros</option></optgroup>
           <optgroup label="Cuidarme"><option value="salud">Salud</option><option value="gimnasio">Gimnasio</option><option value="nutricion">Nutrición</option></optgroup>
-          <optgroup label="Aprender"><option value="mazos">Mazos de estudio</option><option value="ingles">Inglés</option></optgroup>
+          <optgroup label="Aprender"><option value="mazos">Mazos de estudio</option><option value="ingles">Inglés</option><option value="informacion">Centro de información</option></optgroup>
           <optgroup label="Vivir"><option value="finanzas">Finanzas</option><option value="compras">Compras</option><option value="peliculas">Películas</option></optgroup>
+          <option value="sistema">Cómo funciona Vida 2.0</option>
         </select>
         <kbd class="jump-kbd" id="jump-kbd" aria-hidden="true">Ctrl K</kbd>
       </label>
 
       <span class="spacer"></span>
+
+      <button class="btn btn-dark register-btn" type="button" data-open-capture="" aria-haspopup="dialog"><span data-icon="plus"></span><span>Registrar</span></button>
 
       <details class="demo-info">
         <summary aria-label="Sobre esta demo: datos ficticios"><span class="demo-dot" aria-hidden="true"></span><span>Demo<span class="hide-sm"> · datos ficticios</span></span></summary>
@@ -44,6 +52,7 @@
           <strong>Datos ficticios · sin cuentas · sin integraciones</strong>
           <p>Alex, sus proyectos y sus números son inventados. Todo vive en la memoria de esta pestaña: recargar o reiniciar vuelve al inicio. No hay conexiones de red.</p>
           <p class="demo-credit">Diseño y desarrollo: Francisco Vitar.</p>
+          <button type="button" class="link-btn" data-tab="sistema">Cómo funciona el sistema real →</button>
           <a href="https://github.com/franciscovitar/vida-2-0-demo" target="_blank" rel="noopener noreferrer"><span data-icon="code"></span>Ver el código en GitHub</a>
         </div>
       </details>
@@ -59,6 +68,7 @@
             <button class="nav-item" data-tab="tareas" type="button"><span data-icon="tareas"></span><span>Tareas y hábitos</span><span class="nav-count mono" id="count-tareas"></span></button>
             <button class="nav-item" data-tab="proyectos" type="button"><span data-icon="proyectos"></span><span>Proyectos</span></button>
             <button class="nav-item" data-tab="agenda" type="button"><span data-icon="agenda"></span><span>Agenda</span></button>
+            <button class="nav-item" data-tab="plan" type="button"><span data-icon="star"></span><span>Plan y logros</span></button>
           </div>
           <div class="nav-group a-care"><p class="nav-area"><span class="dot" aria-hidden="true"></span>Cuidarme</p>
             <button class="nav-item" data-tab="salud" type="button"><span data-icon="salud"></span><span>Salud</span></button>
@@ -68,12 +78,14 @@
           <div class="nav-group a-learn"><p class="nav-area"><span class="dot" aria-hidden="true"></span>Aprender</p>
             <button class="nav-item" data-tab="mazos" type="button"><span data-icon="mazos"></span><span>Mazos de estudio</span></button>
             <button class="nav-item" data-tab="ingles" type="button"><span data-icon="ingles"></span><span>Inglés</span></button>
+            <button class="nav-item" data-tab="informacion" type="button"><span data-icon="info"></span><span>Centro de información</span></button>
           </div>
           <div class="nav-group a-life"><p class="nav-area"><span class="dot" aria-hidden="true"></span>Vivir</p>
             <button class="nav-item" data-tab="finanzas" type="button"><span data-icon="finanzas"></span><span>Finanzas</span></button>
             <button class="nav-item" data-tab="compras" type="button"><span data-icon="compras"></span><span>Compras</span><span class="nav-count mono" id="count-compras"></span></button>
             <button class="nav-item" data-tab="peliculas" type="button"><span data-icon="peliculas"></span><span>Películas</span></button>
           </div>
+          <button class="nav-item nav-system" data-tab="sistema" type="button"><span data-icon="code"></span><span>Cómo funciona</span></button>
         </nav>
         <div class="about">
           <strong>Sobre esta demo</strong>
@@ -100,6 +112,11 @@
       <button type="button" class="tabbar-item a-life" data-tab="finanzas" data-area="life"><span data-icon="finanzas"></span>Vivir</button>
     </nav>
 
+    <button class="fab" type="button" data-open-capture="" aria-label="Registrar" aria-haspopup="dialog"><span data-icon="plus"></span></button>
+
+    <dialog id="capture-dialog" class="capture-dialog" aria-labelledby="capture-title"></dialog>
+
+    <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
     <div id="announcement" class="sr-only" role="status" aria-live="polite"></div>
   </body>
 </html>

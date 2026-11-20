@@ -1,30 +1,86 @@
 import { initialData } from './data.js';
 import { icon } from './icons.js';
-import { LABELS, areaOfTab } from './logic.js';
+import { LABELS, areaOfTab, parseExercise } from './logic.js';
 import { moduleView } from './modules.js';
+import { validateAchievement, validateReview, weekSnapshot } from './src/domain/planning.js';
+import { applyExampleImport, EXAMPLE_STATEMENT, preflightStatement } from './src/domain/importer.js';
+import { addAchievement, addEnglishCard, addEnglishSession, addEpisode, addRestockToList, addReview, toggleMilestone, updateContinuity, applyIntent, editSet, rateSeason, recordCorrection, recordPurchase, togglePlannedSet, validateIntent } from './src/domain/actions.js';
+import { checkAnswer, schedule } from './src/domain/study.js';
+import { CAPTURE_EXAMPLES, parseCapture } from './src/domain/capture.js';
+import { captureDialog } from './src/views/capture.js';
+import { removeCollection } from './src/domain/collections.js';
+import { recruiterGuide } from './src/views/showcase.js';
 
 const tabs = new Set(Object.keys(LABELS));
 const panel = document.querySelector('#panel');
 const announcement = document.querySelector('#announcement');
+const HISTORY_LIMIT = 40;
 
+const freshCapture = () => ({ open: false, mode: 'chat', formType: 'set', text: '', result: null, errors: {}, values: null, lastApplied: '' });
 const initialUi = Object.freeze({
-  tourOpen: true, tourStep: 0,
+  tourOpen: false, tourStep: 0,
   taskFilter: 'all', projectFilter: 'Todos', selectedProject: 'aurora',
   selectedDay: 0, selectedEvent: 'plan',
-  healthMetric: 'sleep', nutritionDay: 0, mealOpen: '',
+  healthMetric: 'sleep', healthTab: 'summary', healthScore: '',
+  gymTab: 'hoy', gymExercise: 'press', gymEdit: '',
+  nutritionDay: 0, nutritionTab: 'hoy', nutritionWindow: 28, mealOpen: '',
   deck: 'web', cardIndex: 0, cardFlipped: false, cardKnown: 0, cardAgain: 0,
   englishIndex: 0, englishAnswer: '', englishPracticed: false,
-  financeCategory: 'home', financeMode: 'left', moviesFilter: 'Todas',
+  financeCategory: 'home', financeMode: 'left', financeTab: 'budget', purchase: null, movementFilter: 'all',
+  infoTab: 'readings', infoFront: 'all', infoOpen: '',
+  planTab: 'continuity', continuityEdit: '', englishTab: 'practice', reviewDraft: null,
+  shoppingTab: 'list', mediaTab: 'films', seriesFilter: 'all', moviesFilter: 'Todas', answerResult: null, collectionEditor: null,
+  systemMode: 'real',
 });
-const freshUi = () => ({ ...initialUi, gymSets: {} });
+const freshUi = () => ({ ...initialUi, formErrors: {}, cardioDraft: { modality: 'bike', minutes: 40, rpe: '', watts: '' }, foodDraft: { foodId: 'banana', amount: 1, portionId: 'unit', moment: 'Desayuno' }, capture: freshCapture() });
 
 let data = structuredClone(initialData);
 let ui = freshUi();
+let past = [];
 let currentTab = tabs.has(location.hash.slice(1)) ? location.hash.slice(1) : 'hoy';
+let toastTimer = null;
+let captureOpener = null;
+let suppressCaptureCloseFocus = false;
 
 function announce(message) {
   announcement.textContent = message;
 }
+
+/* ───────── Estado: cambios con historial para «Deshacer» ───────── */
+
+function commit(label, mutate) {
+  const snapshot = structuredClone(data);
+  const result = mutate(data);
+  if (result === false) return false;
+  past.push({ label, snapshot });
+  if (past.length > HISTORY_LIMIT) past.shift();
+  render();
+  toast(label, true);
+  return true;
+}
+
+function undo() {
+  const last = past.pop();
+  if (!last) return;
+  data = last.snapshot;
+  ui.gymEdit = '';
+  render();
+  toast(`Deshecho: ${last.label}`, false);
+}
+
+function toast(message, undoable) {
+  announce(message);
+  const element = document.querySelector('#toast');
+  if (!element) return;
+  element.innerHTML = `<span>${icon('check', 16)}</span><span class="toast-text"></span>${undoable ? '<button type="button" class="toast-undo" data-action="undo">Deshacer</button>' : ''}`;
+  element.querySelector('.toast-text').textContent = message;
+  element.hidden = false;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { element.hidden = true; }, 7000);
+  toastTimer.unref?.();
+}
+
+/* ───────── Render ───────── */
 
 /** Aplica valores dinámicos como propiedades CSS (CSSOM), sin estilos en línea bloqueados por la CSP. */
 function applyVars(root) {
@@ -43,16 +99,29 @@ function renderStaticIcons() {
 }
 
 /** Clave estable del control enfocado, para devolverle el foco tras re-renderizar. */
-function focusKey() {
+function focusKey(root) {
   const active = document.activeElement;
-  if (!active || !panel.contains?.(active)) return null;
-  const attribute = [...active.attributes].find((a) => a.name.startsWith('data-') && a.name !== 'data-vars');
-  return attribute ? `[${attribute.name}="${CSS.escape(attribute.value)}"]` : null;
+  if (!active || !root?.contains?.(active)) return null;
+  const attribute = [...active.attributes].find((a) => (a.name.startsWith('data-') && a.name !== 'data-vars') || a.name === 'name');
+  if (attribute) return `[${attribute.name}="${CSS.escape(attribute.value)}"]`;
+  // Los botones de envío no tienen un data-* propio: conservar el foco en el
+  // formulario re-renderizado permite registrar varias series/comidas con teclado.
+  if (active.matches?.('button[type="submit"]')) {
+    const form = active.closest?.('form[data-capture-form]');
+    if (form) {
+      const attributes = ['captureForm', 'exercise', 'set', 'item', 'card']
+        .filter((name) => form.dataset[name] !== undefined)
+        .map((name) => `[data-${name.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`)}="${CSS.escape(form.dataset[name])}"]`)
+        .join('');
+      return `form${attributes} button[type="submit"]`;
+    }
+  }
+  return null;
 }
 
 function render() {
-  const key = focusKey();
-  panel.innerHTML = moduleView(currentTab, data, ui);
+  const key = focusKey(panel);
+  panel.innerHTML = recruiterGuide(ui) + moduleView(currentTab, data, ui);
   applyVars(panel);
 
   const area = areaOfTab(currentTab) ?? 'hoy';
@@ -74,18 +143,29 @@ function render() {
   if (openTasks) openTasks.textContent = String(data.tasks.filter((task) => !task.done).length);
   const toBuy = document.querySelector('#count-compras');
   if (toBuy) toBuy.textContent = String(data.shopping.filter((item) => !item.checked).length);
+  renderCapture();
 
   if (key) panel.querySelector(key)?.focus({ preventScroll: true });
+}
+
+function renderCapture() {
+  const dialog = document.querySelector('#capture-dialog');
+  if (!dialog || !ui.capture.open) return;
+  const key = focusKey(dialog);
+  dialog.innerHTML = captureDialog(ui.capture, data, ui.tourOpen && ui.tourStep === 0);
+  if (key) dialog.querySelector(key)?.focus();
 }
 
 function changeTab(tab, { moveFocus = true } = {}) {
   if (!tabs.has(tab)) return;
   currentTab = tab;
+  ui.collectionEditor = null;
   if (location.hash !== `#${tab}`) history.replaceState(null, '', `#${tab}`);
+  closeCapture({ restoreFocus: false });
   render();
   if (moveFocus) {
     window.scrollTo?.({ top: 0 });
-    panel.querySelector?.('h1')?.focus({ preventScroll: true });
+    (ui.tourOpen ? panel.querySelector?.('.recruiter-guide') : panel.querySelector?.('h1'))?.focus({ preventScroll: true });
   }
   announce(`Sección ${LABELS[tab]}`);
 }
@@ -93,19 +173,269 @@ function changeTab(tab, { moveFocus = true } = {}) {
 function resetDemo() {
   data = structuredClone(initialData);
   ui = freshUi();
+  past = [];
   currentTab = 'hoy';
   history.replaceState(null, '', '#hoy');
+  closeCapture({ restoreFocus: false });
   render();
   announce('Demo reiniciada. Todas las acciones volvieron a su estado inicial.');
 }
 
-const clickHandlers = {
-  tab: (value) => changeTab(value),
-  action: (value) => { if (value === 'reset') resetDemo(); },
-  tour: (value) => {
-    if (value === 'close' || ui.tourStep >= 2) { ui.tourOpen = false; announce('Recorrido cerrado'); }
-    else { ui.tourStep += 1; announce(`Recorrido, paso ${ui.tourStep + 1} de 3`); }
+/* ───────── Captura ───────── */
+
+function openCapture(type) {
+  const dialog = document.querySelector('#capture-dialog');
+  suppressCaptureCloseFocus = false;
+  ui.capture = { ...freshCapture(), open: true, mode: type ? 'form' : 'chat', formType: type || 'set' };
+  captureOpener = document.activeElement ?? null;
+  if (!dialog) return;
+  renderCapture();
+  if (!dialog.open) dialog.showModal?.();
+  dialog.querySelector('textarea, select, input')?.focus();
+}
+
+function closeCapture({ restoreFocus = true } = {}) {
+  ui.capture.open = false;
+  const dialog = document.querySelector('#capture-dialog');
+  if (dialog?.open) {
+    suppressCaptureCloseFocus = !restoreFocus;
+    dialog.close();
+  }
+  if (restoreFocus) captureOpener?.focus?.();
+}
+
+const captureContext = () => ({
+  exercises: data.gym.exercises.map((e) => ({ id: e.id, name: e.name, ...data.gym.exerciseMeta[e.id] })),
+  catalog: data.nutrition.catalog,
+  clock: data.demoClock.time,
+  needs: data.household.needs.map((n) => ({ id: n.id, name: n.name, category: n.category, aliases: [n.name.toLowerCase(), n.name.split(' ')[0].toLowerCase()] })),
+});
+
+/** Lleva la vista previa a la vista (importante en mobile) y anuncia su título. */
+function focusPreview() {
+  const title = document.querySelector('#preview-title');
+  title?.focus?.({ preventScroll: true });
+  title?.scrollIntoView?.({ block: 'start', behavior: 'smooth' });
+}
+
+/** Lee los campos editables de la vista previa y actualiza las intenciones. */
+function syncPreview(form) {
+  if (!ui.capture.result || typeof HTMLFormElement === 'undefined' || !(form instanceof HTMLFormElement)) return;
+  const values = Object.fromEntries(new FormData(form));
+  ui.capture.result.intents = ui.capture.result.intents.map((intent) => {
+    const next = { ...intent };
+    for (const [name, value] of Object.entries(values)) {
+      const [key, field] = name.split('.');
+      if (key === intent.key) next[field] = field === 'moment' ? { value, inferred: false } : value === '' ? null : value;
+    }
+    return next;
+  });
+}
+
+function confirmIntents(intents) {
+  const errors = {};
+  for (const intent of intents) {
+    const check = validateIntent(data, intent);
+    if (!check.ok) errors[intent.key ?? 'quick'] = check.errors;
+  }
+  if (Object.keys(errors).length) {
+    ui.capture.errors = errors;
+    renderCapture();
+    announce('Hay datos para corregir antes de confirmar.');
+    return false;
+  }
+  let summary = [];
+  commit(intents.length === 1 ? 'Registro guardado' : `${intents.length} registros guardados`, (draft) => { summary = intents.map((intent) => applyIntent(draft, intent)); });
+  ui.capture = { ...freshCapture(), open: ui.capture.open, mode: ui.capture.mode, formType: ui.capture.formType, lastApplied: `Guardado: ${summary.join(' · ')}.` };
+  renderCapture();
+  return true;
+}
+
+const submitHandlers = {
+  /** Serie agregada desde la tarjeta del ejercicio. */
+  set(form, values) {
+    const intent = { kind: 'gym.set', exerciseId: form.dataset.exercise, sets: 1, kg: values.kg, reps: values.reps, seconds: values.seconds };
+    const check = validateIntent(data, intent);
+    ui.formErrors[`set-${intent.exerciseId}`] = check.ok ? undefined : check.errors;
+    if (!check.ok) { render(); announce('Revisá la serie: hay un valor fuera de rango.'); return; }
+    commit('Serie agregada', (draft) => { applyIntent(draft, intent); });
+  },
+  'set-edit'(form, values) {
+    const id = form.dataset.set;
+    const snapshot = structuredClone(data);
+    const result = editSet(data, id, values);
+    if (!result.ok) { data = snapshot; ui.formErrors[`edit-${id}`] = result.errors; render(); return; }
+    data = snapshot;
+    ui.gymEdit = '';
+    ui.formErrors[`edit-${id}`] = undefined;
+    commit('Serie corregida', (draft) => { editSet(draft, id, values); });
+  },
+  food(form, values) {
+    const intent = { kind: 'food.entry', foodId: values.foodId, amount: values.amount, portionId: values.portionId, moment: values.moment };
+    ui.foodDraft = { foodId: values.foodId, amount: values.amount, portionId: values.portionId, moment: values.moment };
+    const check = validateIntent(data, intent);
+    ui.formErrors.food = check.ok ? undefined : check.errors;
+    if (!check.ok) { render(); announce('Revisá la cantidad del alimento.'); return; }
+    commit('Alimento agregado', (draft) => { applyIntent(draft, intent); });
+  },
+  purchase(form, values) {
+    const amount = Number(values.amount);
+    const ok = Number.isSafeInteger(amount) && amount > 0 && amount <= 100_000_000;
+    ui.formErrors.purchase = ok ? undefined : { amount: 'Ingresá un importe entero mayor que 0.' };
+    ui.purchase = ok ? amount : null;
     render();
+    announce(ok ? 'Escenario de compra calculado.' : 'Revisá el importe a simular.');
+  },
+  cardio(form, values) {
+    const intent = { kind: 'cardio.session', modality: values.modality, minutes: values.minutes, rpe: values.rpe === '' ? null : Number(values.rpe), watts: values.watts === '' ? null : Number(values.watts) };
+    ui.cardioDraft = { ...values };
+    const check = validateIntent(data, intent);
+    ui.formErrors.cardio = check.ok ? undefined : check.errors;
+    if (!check.ok) { render(); announce('Revisá los datos de la sesión de cardio.'); return; }
+    commit('Sesión de cardio agregada', (draft) => { applyIntent(draft, intent); });
+  },
+  answer(form, values) {
+    const key = form.dataset.card;
+    const [deckId, index] = key.split(':');
+    const card = data.decks.find((d) => d.id === deckId).cards[Number(index)];
+    const result = checkAnswer(card, values.answer);
+    ui.formErrors.answer = result ? undefined : { answer: 'Escribí una respuesta para comprobar.' };
+    ui.answerResult = result ? { key, ...result } : null;
+    if (result) ui.cardFlipped = true;
+    render();
+    announce(result ? (result.correct ? 'Respuesta correcta' : 'La respuesta no coincide') : 'Falta la respuesta');
+  },
+  continuity(form, values) {
+    const id = form.dataset.item;
+    const probe = structuredClone(data);
+    const check = updateContinuity(probe, id, values);
+    ui.formErrors[`cont-${id}`] = check.ok ? undefined : check.errors;
+    if (!check.ok) { render(); return; }
+    ui.continuityEdit = '';
+    commit('Avance registrado: el frente quedó al día', (draft) => { updateContinuity(draft, id, values); });
+  },
+  review(form, values) {
+    const check = validateReview(values);
+    ui.reviewDraft = values;
+    ui.formErrors.review = check.ok ? undefined : check.errors;
+    if (!check.ok) { render(); announce('Completá las tres preguntas de la revisión.'); return; }
+    ui.reviewDraft = null;
+    commit('Revisión semanal guardada', (draft) => { addReview(draft, values, weekSnapshot(draft)); });
+  },
+  achievement(form, values) {
+    const check = validateAchievement(values);
+    ui.formErrors.achievement = check.ok ? undefined : check.errors;
+    if (!check.ok) { render(); return; }
+    commit('Logro guardado', (draft) => { addAchievement(draft, values); });
+  },
+  'english-session'(form, values) {
+    const probe = structuredClone(data);
+    const check = addEnglishSession(probe, values);
+    ui.formErrors.englishSession = check.ok ? undefined : check.errors;
+    if (!check.ok) { render(); return; }
+    commit('Sesión de inglés registrada', (draft) => { addEnglishSession(draft, values); });
+  },
+  parse(form, values) {
+    ui.capture.text = String(values.text ?? '');
+    ui.capture.errors = {};
+    ui.capture.lastApplied = '';
+    ui.capture.result = ui.capture.text.trim() ? parseCapture(ui.capture.text, captureContext()) : { intents: [], unparsed: [] };
+    renderCapture();
+    const recognized = ui.capture.result.intents.length;
+    const unparsed = ui.capture.result.unparsed.length;
+    announce(`Interpretación lista: ${recognized} ${recognized === 1 ? 'registro reconocido' : 'registros reconocidos'}, ${unparsed} ${unparsed === 1 ? 'fragmento sin interpretar' : 'fragmentos sin interpretar'}.`);
+    focusPreview();
+  },
+  confirm(form) {
+    syncPreview(form);
+    confirmIntents(ui.capture.result.intents);
+  },
+  quick(form, values) {
+    const type = ui.capture.formType;
+    ui.capture.values = values;
+    let intent;
+    if (type === 'set') {
+      const timed = data.gym.exerciseMeta[values.exerciseId]?.mode === 'time';
+      intent = { kind: 'gym.set', exerciseId: values.exerciseId, sets: 1, kg: timed ? null : values.kg, reps: timed ? null : values.reps, seconds: timed ? values.reps : null };
+    } else if (type === 'food') {
+      const food = data.nutrition.catalog.find((f) => f.id === values.foodId);
+      intent = { kind: 'food.entry', foodId: values.foodId, amount: values.amount, portionId: values.portionUnit === 'g' ? 'g' : food.portions[0].id, moment: values.moment };
+    } else if (type === 'expense') {
+      intent = { kind: 'finance.expense', amount: values.amount, categoryId: values.categoryId, description: values.description };
+    } else if (['shopping.item', 'media.movie', 'media.series', 'study.deck', 'study.card'].includes(type)) {
+      intent = { kind: type, ...values };
+    } else {
+      intent = { kind: 'task.create', title: values.title, priority: values.priority };
+    }
+    if (confirmIntents([{ ...intent, key: 'quick' }])) ui.capture.values = null;
+  },
+  collection(form, values) {
+    const intent = { kind: form.dataset.kind, ...values, id: form.dataset.id || undefined, deckId: form.dataset.deckId || values.deckId, index: form.dataset.index, seriesId: form.dataset.seriesId };
+    const check = validateIntent(data, intent);
+    if (!check.ok) {
+      ui.formErrors.collection = check.errors;
+      ui.collectionEditor = { ...ui.collectionEditor, values: { ...values, id: intent.id, deckId: intent.deckId, index: intent.index, seriesId: intent.seriesId } };
+      render(); announce('Revisá los campos indicados.'); return;
+    }
+    const kind = intent.kind;
+    const wasNewDeck = kind === 'study.deck' && !intent.id;
+    ui.formErrors.collection = {};
+    ui.collectionEditor = null;
+    commit('Registro guardado', (draft) => { applyIntent(draft, intent); });
+    if (wasNewDeck) {
+      ui.deck = data.decks.at(-1).id;
+      ui.cardIndex = 0; ui.cardFlipped = false;
+      render();
+    }
+    panel.querySelector?.('button[data-collection-edit]')?.focus({ preventScroll: true });
+  },
+};
+
+/* ───────── Clicks ───────── */
+
+const clickHandlers = {
+  tab: (value, target) => { if (target?.dataset?.gymTabTarget) ui.gymTab = target.dataset.gymTabTarget; changeTab(value); },
+  action: (value) => { if (value === 'reset') resetDemo(); if (value === 'undo') undo(); },
+  openCapture: (value) => openCapture(value),
+  captureClose: () => closeCapture(),
+  captureMode: (value) => { ui.capture.mode = value; ui.capture.errors = {}; renderCapture(); },
+  captureType: (value) => { ui.capture.formType = value; ui.capture.values = null; ui.capture.errors = {}; ui.capture.lastApplied = ''; renderCapture(); },
+  captureExample: (value) => {
+    ui.capture.text = CAPTURE_EXAMPLES[Number(value)] ?? '';
+    ui.capture.result = parseCapture(ui.capture.text, captureContext());
+    ui.capture.errors = {}; ui.capture.lastApplied = '';
+    renderCapture();
+    focusPreview();
+    const count = ui.capture.result.intents.length;
+    announce(`Ejemplo interpretado: ${count} ${count === 1 ? 'registro' : 'registros'}.`);
+  },
+  captureDrop: (value) => {
+    syncPreview(document.querySelector?.('[data-capture-form="confirm"]'));
+    ui.capture.result.intents = ui.capture.result.intents.filter((i) => i.key !== value);
+    renderCapture();
+  },
+  tour: (value) => {
+    if (document.querySelector('#capture-dialog')?.open) closeCapture({ restoreFocus: false });
+    if (value === 'start') {
+      ui.tourOpen = true;
+      ui.tourStep = 0;
+      changeTab('hoy');
+      announce('Recorrido guiado, paso 1 de 3');
+      return;
+    }
+    if (value === 'close' || (value === 'next' && ui.tourStep >= 2)) {
+      ui.tourOpen = false;
+      render();
+      panel.querySelector?.('h1')?.focus({ preventScroll: true });
+      announce('Recorrido finalizado');
+      return;
+    }
+    ui.tourStep += value === 'prev' ? -1 : 1;
+    ui.tourStep = Math.max(0, Math.min(2, ui.tourStep));
+    if (ui.tourStep === 1) ui.financeTab = 'budget';
+    if (ui.tourStep === 2) ui.systemMode = 'real';
+    changeTab(['hoy', 'finanzas', 'sistema'][ui.tourStep]);
+    announce(`Recorrido guiado, paso ${ui.tourStep + 1} de 3`);
   },
   taskFilter: (value) => { ui.taskFilter = value; render(); announce(`Tareas: ${value === 'all' ? 'todas' : value}`); },
   filter: (value) => {
@@ -121,18 +451,99 @@ const clickHandlers = {
     render(); announce('Agenda actualizada');
   },
   event: (value) => { ui.selectedEvent = value; render(); announce(`Detalle de ${data.agenda.find((e) => e.id === value)?.title ?? ''}`); },
-  healthMetric: (value) => { ui.healthMetric = value; render(); announce(`Indicador: ${value === 'sleep' ? 'sueño' : value === 'steps' ? 'pasos' : 'minutos activos'}`); },
+  healthTab: (value) => { ui.healthTab = value; render(); },
+  healthScore: (value) => { ui.healthScore = value; render(); },
+  financeTab: (value) => { ui.financeTab = value; render(); },
+  financeImport: () => {
+    if (!preflightStatement(EXAMPLE_STATEMENT, data.finances).eligible) return;
+    commit('Importación de ejemplo conciliada', (draft) => applyExampleImport(draft) > 0);
+  },
+  movementFilter: (value) => { ui.movementFilter = value; render(); },
+  shoppingTab: (value) => { ui.shoppingTab = value; render(); },
+  collectionEdit: (value) => {
+    const [kind, id, index] = value.split('|');
+    ui.collectionEditor = { kind };
+    if (kind === 'study.card') { ui.collectionEditor.deckId = id; if (index !== undefined) ui.collectionEditor.index = index; }
+    else if (kind === 'media.season') ui.collectionEditor.seriesId = id;
+    else if (id) ui.collectionEditor.id = id;
+    ui.formErrors.collection = {};
+    if (kind === 'media.movie') ui.mediaTab = 'films';
+    if (kind === 'media.series' || kind === 'media.season') ui.mediaTab = 'series';
+    if (kind === 'shopping.item') ui.shoppingTab = 'list';
+    render();
+    panel.querySelector?.('.inline-editor input, .inline-editor textarea, .inline-editor select')?.focus({ preventScroll: true });
+  },
+  editorClose: () => { ui.collectionEditor = null; ui.formErrors.collection = {}; render(); },
+  collectionRemove: (value) => {
+    const [kind, id, index] = value.split('|');
+    const changed = commit('Registro eliminado', (draft) => removeCollection(draft, kind, id, index));
+    if (!changed) return;
+    ui.collectionEditor = null;
+    if (kind === 'study.deck' && ui.deck === id) ui.deck = data.decks[0].id;
+    if (kind === 'study.card') ui.cardIndex = 0;
+    ui.answerResult = null; ui.cardFlipped = false;
+    render();
+  },
+  restockAdd: (value) => commit('Agregado a la lista de compras', (draft) => addRestockToList(draft, value)),
+  restockCorrect: (value) => { const [id, type] = value.split(':'); commit('Corrección registrada: la reposición se recalculó', (draft) => { recordCorrection(draft, id, type); }); },
+  restockBought: (value) => commit('Compra registrada: la reposición se recalculó', (draft) => { recordPurchase(draft, value); }),
+  mediaTab: (value) => { ui.mediaTab = value; render(); },
+  planTab: (value) => { ui.planTab = value; ui.continuityEdit = ''; render(); },
+  continuityEdit: (value) => { ui.continuityEdit = value; render(); if (value) panel.querySelector?.(`[data-item="${value}"] input`)?.focus(); },
+  englishTab: (value) => { ui.englishTab = value; render(); },
+  englishCard: (value) => commit('Tarjeta creada en el mazo «Inglés cotidiano»', (draft) => (addEnglishCard(draft, value) ? undefined : false)),
+  infoTab: (value) => { ui.infoTab = value; render(); },
+  infoFront: (value) => { ui.infoFront = value; render(); },
+  infoOpen: (value) => { ui.infoOpen = value; render(); },
+  infoFeedback: (value) => {
+    const [id, fb] = value.split(':');
+    data.info.feedback = { ...data.info.feedback, [id]: data.info.feedback[id] === fb ? undefined : fb };
+    render();
+    announce(data.info.feedback[id] ? 'Opinión guardada para esta pieza' : 'Opinión quitada');
+  },
+  automationToggle: (value) => commit('Estado de la automatización cambiado', (draft) => {
+    const a = draft.info.automations.find((x) => x.id === value);
+    a.enabled = !a.enabled;
+  }),
+  automationRun: (value) => commit('Ejecución simulada registrada', (draft) => {
+    const a = draft.info.automations.find((x) => x.id === value);
+    a.runs = [{ id: `run-${(draft.seq = (draft.seq ?? 0) + 1)}`, at: `${draft.today}T${draft.demoClock.time}`, state: a.enabled ? 'succeeded' : 'skipped', detail: a.enabled ? 'Ejecución manual simulada' : 'Pausada: el kill switch impidió la ejecución' }, ...a.runs];
+  }),
+  seriesFilter: (value) => { ui.seriesFilter = value; render(); },
+  seriesPause: (value) => commit('Estado de serie actualizado', (draft) => {
+    const series = draft.series.find((s) => s.id === value);
+    if (!series) return false;
+    series.paused = !series.paused;
+  }),
+  episode: (value) => { let label = null; commit('Episodio registrado', (draft) => { label = addEpisode(draft, value); return label ? undefined : false; }); },
+  seasonRate: (value) => { const [id, n, r] = value.split(':'); commit('Calificación de temporada guardada', (draft) => (rateSeason(draft, id, Number(n), Number(r)) ? undefined : false)); },
+  cardRate: (value) => advanceCard('cardKnown', value),
+  healthMetric: (value) => { ui.healthMetric = value; ui.healthTab = 'trends'; render(); announce(`Indicador: ${value === 'sleep' ? 'sueño' : value === 'steps' ? 'pasos' : 'minutos activos'}`); },
+  gymTab: (value) => { ui.gymTab = value; ui.gymEdit = ''; render(); },
+  gymExercise: (value) => { ui.gymExercise = value; render(); },
+  gymEdit: (value) => { ui.gymEdit = value; render(); if (value) panel.querySelector?.(`[data-set="${value}"] input`)?.focus(); },
+  gymRemove: (value) => commit('Serie eliminada', (draft) => { draft.gym.today = draft.gym.today.filter((s) => s.id !== value); }),
   gymToggle: () => { data.gym.completed = !data.gym.completed; render(); announce(data.gym.completed ? 'Sesión marcada como completa' : 'Sesión marcada como pendiente'); },
-  gymSet: (value) => { ui.gymSets = { ...ui.gymSets, [value]: !ui.gymSets[value] }; render(); },
+  gymSet: (value) => {
+    const exercise = data.gym.exercises.find((e) => e.id === value.split('-')[0]);
+    const plan = parseExercise(exercise);
+    const added = togglePlannedSet(data, value, { kg: plan.kg, reps: plan.repsNumber, seconds: Number.parseInt(plan.reps, 10) });
+    render();
+    announce(added ? `Serie de ${exercise.name} registrada` : `Serie de ${exercise.name} desmarcada`);
+  },
   nutritionDay: (value) => { ui.nutritionDay = Number(value); ui.mealOpen = ''; render(); announce(`Comidas de ${data.nutrition.days[ui.nutritionDay].label}`); },
+  nutritionTab: (value) => { ui.nutritionTab = value; render(); },
+  nutritionWindow: (value) => { ui.nutritionWindow = Number(value); render(); },
+  foodRemove: (value) => commit('Alimento quitado', (draft) => { draft.nutrition.days[0].meals = draft.nutrition.days[0].meals.filter((m) => m.id !== value); }),
   meal: (value) => { ui.mealOpen = ui.mealOpen === value ? '' : value; render(); },
   deck: (value) => {
+    ui.collectionEditor = null;
     Object.assign(ui, { deck: value, cardIndex: 0, cardFlipped: false, cardKnown: 0, cardAgain: 0 });
     render(); announce(`Mazo ${data.decks.find((d) => d.id === value)?.title ?? ''}`);
   },
   flip: () => { ui.cardFlipped = !ui.cardFlipped; render(); announce(ui.cardFlipped ? 'Respuesta revelada' : 'Pregunta visible'); },
-  nextCard: () => advanceCard('cardKnown'),
-  cardAgain: () => advanceCard('cardAgain'),
+  nextCard: () => advanceCard('cardKnown', 'good'),
+  cardAgain: () => advanceCard('cardAgain', 'again'),
   englishAnswer: (value) => {
     if (ui.englishAnswer) return;
     ui.englishAnswer = value;
@@ -143,18 +554,35 @@ const clickHandlers = {
   nextEnglish: () => { ui.englishIndex = (ui.englishIndex + 1) % data.english.questions.length; ui.englishAnswer = ''; render(); announce('Siguiente pregunta de inglés'); },
   financeCategory: (value) => { ui.financeCategory = value; render(); },
   financeMode: (value) => { ui.financeMode = value; render(); },
+  systemMode: (value) => { ui.systemMode = value; render(); },
   moviesFilter: (value) => { ui.moviesFilter = value; render(); announce(`Películas: ${value}`); },
+  movieRate: (value) => {
+    const [id, raw] = value.split(':');
+    const rating = Number(raw);
+    if (!Number.isInteger(rating) || rating < 1 || rating > 5) return;
+    commit('Calificación de película actualizada', (draft) => {
+      const movie = draft.movies.find((m) => m.id === id);
+      if (!movie?.watched) return false;
+      movie.rating = movie.rating === rating ? null : rating;
+      movie.savedRating = movie.rating;
+    });
+  },
   movieToggle: (value) => {
-    const movie = data.movies.find((m) => m.id === value);
-    if (!movie) return;
-    movie.watched = !movie.watched;
-    movie.rating = movie.watched ? (initialData.movies.find((m) => m.id === value)?.rating ?? null) : null;
-    render(); announce(`${movie.title}: ${movie.watched ? 'vista' : 'por ver'}`);
+    commit('Estado de película actualizado', (draft) => {
+      const movie = draft.movies.find((m) => m.id === value);
+      if (!movie) return false;
+      movie.watched = !movie.watched;
+      if (!movie.watched) { movie.savedRating = movie.rating; movie.rating = null; movie.watchedOn = null; }
+      else movie.rating = movie.savedRating ?? null;
+    });
   },
 };
 
-function advanceCard(counter) {
+function advanceCard(counter, rating) {
   const deck = data.decks.find((d) => d.id === ui.deck);
+  const key = `${deck.id}:${ui.cardIndex % deck.cards.length}`;
+  data.study[key] = schedule(data.study[key], rating);
+  ui.answerResult = null;
   ui[counter] += 1;
   ui.cardIndex = (ui.cardIndex + 1) % deck.cards.length;
   ui.cardFlipped = false;
@@ -171,17 +599,48 @@ document.addEventListener('click', (event) => {
   for (const [name, handler] of Object.entries(clickHandlers)) {
     if (name in target.dataset) {
       if (target.tagName === 'A') event.preventDefault?.();
-      handler(target.dataset[name]);
+      if (info?.open) info.open = false;
+      handler(target.dataset[name], target);
       return;
     }
   }
 });
 
+document.addEventListener('submit', (event) => {
+  const form = event.target;
+  const handler = submitHandlers[form?.dataset?.captureForm];
+  if (!handler) return;
+  event.preventDefault();
+  handler(form, Object.fromEntries(new FormData(form)));
+});
+
 document.addEventListener('change', (event) => {
   const target = event.target;
   if (target.id === 'mobile-nav') { changeTab(target.value); return; }
+  if ('foodSelect' in (target.dataset ?? {})) {
+    const food = data.nutrition.catalog.find((f) => f.id === target.value);
+    ui.foodDraft = { ...ui.foodDraft, foodId: target.value, portionId: food.portions[0].id };
+    render();
+    return;
+  }
+  if (/^i\d+\.foodId$/.test(target.name ?? '')) {
+    const form = target.form;
+    syncPreview(form);
+    const key = target.name.split('.')[0];
+    const food = data.nutrition.catalog.find((f) => f.id === target.value);
+    ui.capture.result.intents = ui.capture.result.intents.map((i) => (i.key === key ? { ...i, foodName: food.name, portionId: food.portions[0].id } : i));
+    renderCapture();
+    return;
+  }
   if (!(target instanceof HTMLInputElement)) return;
-  const { habitCheck, taskCheck, shoppingCheck } = target.dataset;
+  const { habitCheck, taskCheck, shoppingCheck, milestoneCheck } = target.dataset;
+  if (milestoneCheck) {
+    const [goalId, milestoneId] = milestoneCheck.split(':');
+    toggleMilestone(data, goalId, milestoneId, target.checked);
+    render();
+    announce(target.checked ? 'Hito cumplido' : 'Hito pendiente');
+    return;
+  }
   if (habitCheck) {
     const habit = data.habits.find((h) => h.id === habitCheck);
     if (habit) { habit.done = target.checked; render(); announce(`${habit.label}: ${habit.done ? 'completado' : 'pendiente'}`); }
@@ -189,12 +648,20 @@ document.addEventListener('change', (event) => {
     const task = data.tasks.find((t) => t.id === taskCheck);
     if (task) {
       task.done = target.checked;
-      if (ui.tourOpen && ui.tourStep === 0) ui.tourStep = 1;
       render(); announce(`${task.label}: ${task.done ? 'completada' : 'pendiente'}`);
     }
   } else if (shoppingCheck) {
     const item = data.shopping.find((s) => s.id === shoppingCheck);
-    if (item) { item.checked = target.checked; render(); announce(`${item.name}: ${item.checked ? 'en la compra' : 'pendiente'}`); }
+    if (item) {
+      commit(target.checked ? 'Producto comprado' : 'Producto devuelto a pendientes', (draft) => {
+        const current = draft.shopping.find((s) => s.id === shoppingCheck);
+        current.checked = target.checked;
+        if (current.needId) {
+          const ref = `buy-${current.id}`;
+          draft.household.extraPurchases = draft.household.extraPurchases.filter((p) => p.id !== ref);
+          if (current.checked) { recordPurchase(draft, current.needId, ref); current.checked = true; }
+        }
+      }); }
   }
 });
 
@@ -212,6 +679,12 @@ document.addEventListener('keydown', (event) => {
   }
 });
 
+document.querySelector('#capture-dialog')?.addEventListener('close', () => {
+  ui.capture.open = false;
+  if (!suppressCaptureCloseFocus) captureOpener?.focus?.();
+  suppressCaptureCloseFocus = false;
+});
+
 window.addEventListener('hashchange', () => {
   const tab = location.hash.slice(1);
   if (tabs.has(tab) && tab !== currentTab) changeTab(tab);
@@ -221,3 +694,11 @@ const kbd = document.querySelector('#jump-kbd');
 if (kbd && /Mac|iPhone|iPad/.test(globalThis.navigator?.platform ?? '')) kbd.textContent = '⌘K';
 renderStaticIcons();
 render();
+
+/** Superficie mínima para pruebas automatizadas (no se usa en la interfaz). */
+export const __test = {
+  submit: (name, values, dataset = {}) => submitHandlers[name]({ dataset }, values),
+  get data() { return data; },
+  get ui() { return ui; },
+  undo,
+};

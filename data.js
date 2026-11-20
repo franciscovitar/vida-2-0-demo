@@ -2,7 +2,11 @@
  * Persona, proyectos y eventos completamente inventados para un showcase público.
  * Ningún dato se importa desde los mocks personales ni desde las integraciones de Vida 2.0.
  */
+import { AUTOMATIONS, CARDIO_WEEK, ENGLISH_LAB, EXERCISE_META, PLANNING, INFO_PIECES, TECH_RADAR, FOOD_CATALOG, GYM_HISTORY, HEALTH_HISTORY, HOUSEHOLD_NEEDS, NUTRITION_HISTORY, SERIES } from './src/data/synthetic.js';
+
 export const initialData = Object.freeze({
+  /** Fecha ISO del escenario (martes 17/11/2026). */
+  today: '2026-11-17',
   persona: 'Alex',
   dateLabel: 'MARTES, 17 DE NOVIEMBRE DE 2026',
   focus: 'Preparar la presentación de un producto digital',
@@ -45,6 +49,8 @@ export const initialData = Object.freeze({
     stepsTrend: [6800, 7900, 7200, 9300, 8300, 6400, 8240],
     activityTrend: [24, 38, 46, 31, 52, 20, 42],
     trendLabels: ['Mié', 'Jue', 'Vie', 'Sáb', 'Dom', 'Lun', 'Hoy'],
+    /** 28 días sintéticos; los últimos 7 coinciden con las tendencias de arriba. */
+    history: HEALTH_HISTORY,
   },
   gym: {
     completed: false,
@@ -57,17 +63,27 @@ export const initialData = Object.freeze({
       { id: 'plank', name: 'Plancha', muscle: 'Core', sets: '3 × 30 s', weight: 'Peso corporal' },
     ],
     volume: [42, 52, 49, 56, 61, 64],
+    exerciseMeta: EXERCISE_META,
+    history: GYM_HISTORY,
+    /** Series registradas hoy (planificadas marcadas o agregadas por el visitante). */
+    today: [],
+    /** Sesiones de cardio de los últimos 7 días (para MET-min). */
+    cardio: CARDIO_WEEK,
   },
   nutrition: {
     targetCalories: 2200,
+    /** Objetivo de energía como rango (no se convierte en un punto medio artificial). */
+    target: { kcalLow: 2000, kcalHigh: 2300, protein: 110, fiber: 30 },
+    catalog: FOOD_CATALOG,
+    history: NUTRITION_HISTORY,
     days: [
-      { label: 'Martes 17', meals: [
+      { label: 'Hoy, martes 17', date: '2026-11-17', closed: false, meals: [
         { id: 'breakfast', time: '08:15', title: 'Tostadas, fruta y yogur', type: 'Desayuno', calories: 460, protein: 21, carbs: 62, fats: 14 },
         { id: 'lunch', time: '13:20', title: 'Bowl de arroz y verduras', type: 'Almuerzo', calories: 680, protein: 35, carbs: 83, fats: 20 },
         { id: 'snack', time: '17:10', title: 'Frutos secos y una manzana', type: 'Merienda', calories: 280, protein: 9, carbs: 31, fats: 14 },
         { id: 'dinner', time: '21:00', title: 'Pasta con salsa de tomate', type: 'Cena', calories: 590, protein: 28, carbs: 76, fats: 18 },
       ] },
-      { label: 'Miércoles 18', meals: [
+      { label: 'Lunes 16', date: '2026-11-16', closed: false, note: 'Registro incompleto: solo 2 comidas cargadas.', meals: [
         { id: 'w-breakfast', time: '08:00', title: 'Avena, banana y semillas', type: 'Desayuno', calories: 480, protein: 19, carbs: 70, fats: 14 },
         { id: 'w-lunch', time: '13:00', title: 'Wrap de pollo y vegetales', type: 'Almuerzo', calories: 630, protein: 38, carbs: 60, fats: 22 },
       ] },
@@ -78,25 +94,69 @@ export const initialData = Object.freeze({
       { front: '¿Qué es el DOM?', back: 'Es la representación estructurada del documento que permite a JavaScript leer y modificar la página.' },
       { front: '¿Qué significa una función pura?', back: 'Produce el mismo resultado con las mismas entradas y no genera efectos secundarios observables.' },
       { front: '¿Para qué sirve un test de integración?', back: 'Para comprobar que varios componentes colaboran correctamente en un escenario concreto.' },
+      { front: '¿Qué diferencia hay entre HTML y CSS?', back: 'HTML estructura el contenido; CSS define cómo se presenta visualmente.' },
+      { front: '¿Para qué sirve una API?', back: 'Permite que dos partes de software intercambien información mediante un contrato definido.' },
+      { front: '¿Qué es una petición HTTP GET?', back: 'Una petición para recuperar una representación de un recurso, sin pedir que se modifique.' },
+      { front: '¿Qué mejora el uso de etiquetas semánticas?', back: 'La estructura, accesibilidad y comprensión del documento por navegadores y tecnologías asistivas.' },
     ] },
     { id: 'english', title: 'Inglés cotidiano', topic: 'Idiomas', color: 'blue', cards: [
       { front: 'What does “figure out” mean?', back: 'Significa resolver o comprender algo después de pensarlo.' },
-      { front: 'How do you say “lo antes posible”?', back: 'As soon as possible.' },
-      { front: 'What is the past tense of “seek”?', back: 'Sought.' },
+      { front: 'How do you say “lo antes posible”?', back: 'As soon as possible.', accepted: ['as soon as possible', 'asap'] },
+      { front: 'What is the past tense of “seek”?', back: 'Sought.', accepted: ['sought'] },
+      { front: 'How do you say “me acostumbré a” in English?', back: 'I got used to…', accepted: ['i got used to'] },
+      { front: 'What is the difference between “since” and “for”?', back: '“Since” marks a starting point; “for” marks a duration.' },
+      { front: 'How do you ask for clarification politely?', back: '“Could you clarify what you mean?” is a polite option.' },
+      { front: 'What does “on the other hand” introduce?', back: 'A contrasting idea or a different perspective.' },
     ] },
     { id: 'finance', title: 'Finanzas personales', topic: 'Vida diaria', color: 'amber', cards: [
       { front: '¿Qué es un gasto fijo?', back: 'Un gasto recurrente cuya frecuencia o importe suele ser previsible.' },
       { front: '¿Qué significa diversificar?', back: 'Distribuir recursos entre distintas opciones para no depender de una sola.' },
       { front: '¿Para qué sirve un presupuesto?', back: 'Para planificar cómo se distribuyen los ingresos entre necesidades, objetivos y gastos.' },
+      { front: '¿Qué es un fondo de emergencia?', back: 'Una reserva separada para afrontar gastos imprevistos o interrupciones de ingresos.' },
+      { front: '¿Qué representa el flujo de caja?', back: 'Las entradas y salidas de dinero durante un período.' },
+      { front: '¿Cuál es la diferencia entre ahorro y gasto?', back: 'El ahorro conserva recursos para usarlos después; el gasto los utiliza ahora.' },
+    ] },
+    { id: 'ux', title: 'Diseño de producto', topic: 'UX e interfaz', color: 'violet', cards: [
+      { front: '¿Qué es una hipótesis de diseño?', back: 'Una suposición comprobable sobre cómo una solución podría mejorar la experiencia de alguien.' },
+      { front: '¿Para qué se usa una prueba de usabilidad?', back: 'Para observar a personas completando tareas e identificar dificultades concretas.' },
+      { front: '¿Qué significa accesibilidad digital?', back: 'Diseñar para que personas con distintas capacidades puedan usar un producto.' },
+      { front: '¿Qué es un estado vacío útil?', back: 'Una pantalla sin datos que explica qué falta y cómo empezar.' },
+      { front: '¿Por qué importa la jerarquía visual?', back: 'Ayuda a identificar qué información y acciones son prioritarias.' },
+      { front: '¿Qué aporta un prototipo?', back: 'Permite explorar y validar un flujo antes de construir su versión definitiva.' },
+    ] },
+    { id: 'science', title: 'Pensamiento científico', topic: 'Ciencia', color: 'green', cards: [
+      { front: '¿Qué diferencia hay entre correlación y causalidad?', back: 'Que dos variables cambien juntas no demuestra que una provoque la otra.' },
+      { front: '¿Qué es una variable de control?', back: 'Un factor que se mantiene constante para aislar lo que se está estudiando.' },
+      { front: '¿Por qué se replica un experimento?', back: 'Para evaluar si el resultado se sostiene en nuevas mediciones o condiciones.' },
+      { front: '¿Qué es el sesgo de confirmación?', back: 'La tendencia a favorecer información que respalda creencias previas.' },
+      { front: '¿Qué describe una muestra?', back: 'Un subconjunto de observaciones elegido de una población.' },
+      { front: '¿Para qué sirve revisar la incertidumbre?', back: 'Para no presentar una medición o conclusión con más precisión de la que permite la evidencia.' },
+    ] },
+    { id: 'history', title: 'Historia y sociedad', topic: 'Humanidades', color: 'amber', cards: [
+      { front: '¿Qué es una fuente histórica primaria?', back: 'Un documento, objeto o testimonio producido en el período investigado.' },
+      { front: '¿Qué significa contextualizar una fuente?', back: 'Interpretarla considerando quién la creó, cuándo, para quién y con qué propósito.' },
+      { front: '¿Qué se entiende por Revolución Industrial?', back: 'La transformación de la producción y la sociedad ligada a la mecanización desde el siglo XVIII.' },
+      { front: '¿Qué es una cronología?', back: 'Una organización de acontecimientos según su secuencia temporal.' },
+      { front: '¿Por qué comparar fuentes?', back: 'Para identificar coincidencias, contradicciones, sesgos y vacíos en los testimonios.' },
+      { front: '¿Qué caracteriza a una democracia representativa?', back: 'La ciudadanía elige representantes para tomar decisiones públicas dentro de un marco institucional.' },
+    ] },
+    { id: 'habits', title: 'Hábitos y organización', topic: 'Vida diaria', color: 'blue', cards: [
+      { front: '¿Qué es una acción siguiente?', back: 'Una tarea concreta y visible que permite empezar a avanzar en un objetivo.' },
+      { front: '¿Para qué sirve una revisión semanal?', back: 'Para comparar compromisos, detectar bloqueos y ajustar prioridades.' },
+      { front: '¿Qué diferencia hay entre proyecto y tarea?', back: 'Un proyecto requiere varias acciones; una tarea es una acción individual ejecutable.' },
+      { front: '¿Qué es un hábito disparado por contexto?', back: 'Una conducta asociada a una señal del entorno o de la rutina.' },
+      { front: '¿Por qué conviene limitar tareas simultáneas?', back: 'Para reducir cambios de contexto y facilitar la finalización del trabajo.' },
+      { front: '¿Qué significa registrar un avance?', back: 'Dejar evidencia concreta de lo realizado, no solo de lo que se había planeado.' },
     ] },
   ],
   english: {
+    lab: ENGLISH_LAB,
     streak: 8,
     unit: 'Present perfect y expresiones de tiempo',
     questions: [
-      { prompt: 'She has lived in London ___ 2022.', choices: ['for', 'since', 'during'], correct: 'since', note: '“Since” marca el punto en el tiempo desde el que sucede algo.' },
-      { prompt: 'I am looking forward ___ you.', choices: ['to meeting', 'meet', 'to meet'], correct: 'to meeting', note: 'Después de “look forward to” usamos un sustantivo o la forma -ing.' },
-      { prompt: 'We have worked together ___ three months.', choices: ['since', 'for', 'from'], correct: 'for', note: '“For” expresa una duración.' },
+      { prompt: 'She has lived in London ___ 2022.', pattern: 'w-since', choices: ['for', 'since', 'during'], correct: 'since', note: '“Since” marca el punto en el tiempo desde el que sucede algo.' },
+      { prompt: 'I am looking forward ___ you.', pattern: 'w-forward', choices: ['to meeting', 'meet', 'to meet'], correct: 'to meeting', note: 'Después de “look forward to” usamos un sustantivo o la forma -ing.' },
+      { prompt: 'We have worked together ___ three months.', pattern: 'w-since', choices: ['since', 'for', 'from'], correct: 'for', note: '“For” expresa una duración.' },
     ],
   },
   finances: {
@@ -111,6 +171,36 @@ export const initialData = Object.freeze({
     ],
     months: [780, 810, 760, 930, 845, 886],
     monthLabels: ['Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov'],
+    /** Movimientos registrados durante la visita (vacío al inicio). */
+    movements: [],
+    /** Planificación para Safe-to-Spend (ARS, enteros). */
+    planning: {
+      liquidity: 980000,
+      reserve: 300000,
+      obligations: [
+        { id: 'card', label: 'Resumen de tarjeta', amount: 118000, due: '2026-11-25' },
+        { id: 'rent', label: 'Alquiler de diciembre', amount: 260000, due: '2026-12-05' },
+      ],
+      goals: [{ id: 'trip', label: 'Fondo de viaje', amount: 80000 }],
+      other: [],
+      essentialMonthly: 640000,
+    },
+    /** Ingresos económicos por mes: trabajo y otros (financieros). */
+    incomeHistory: [
+      { month: 'Jun', work: 1450000, other: 18000 },
+      { month: 'Jul', work: 1500000, other: 21000 },
+      { month: 'Ago', work: 1500000, other: 19500 },
+      { month: 'Sep', work: 1550000, other: 22000 },
+      { month: 'Oct', work: 1500000, other: 20500 },
+      { month: 'Nov', work: 1500000, other: 23000 },
+    ],
+    /** Movimientos destacados del mes, con su clase económica (las transferencias no cuentan). */
+    ledger: [
+      { id: 'l-salary', date: '2026-11-03', description: 'Sueldo', kind: 'income', amount: 1500000 },
+      { id: 'l-interest', date: '2026-11-05', description: 'Rendimiento de cuenta remunerada', kind: 'income', amount: 23000 },
+      { id: 'l-transfer', date: '2026-11-06', description: 'Transferencia entre cuentas propias', kind: 'transfer', amount: 200000 },
+      { id: 'l-refund', date: '2026-11-09', description: 'Reintegro de un gasto compartido', kind: 'transfer', amount: 15000 },
+    ],
   },
   shopping: [
     { id: 'apples', name: 'Manzanas', category: 'Verdulería', amount: '1 kg', checked: false },
@@ -126,4 +216,13 @@ export const initialData = Object.freeze({
     { id: 'seasons', title: 'Las cuatro estaciones', genre: 'Aventura', year: 2025, color: 'green', watched: false, rating: null, symbol: '❋' },
     { id: 'lastlight', title: 'La última luz', genre: 'Suspenso', year: 2023, color: 'amber', watched: true, rating: 5, symbol: '☼' },
   ],
+  /** Reposición del hogar: historial de compras por producto y correcciones del usuario. */
+  household: { needs: HOUSEHOLD_NEEDS, corrections: [], extraPurchases: [] },
+  series: SERIES,
+  /** Organizar: continuidad por proyecto, objetivos con hitos, revisiones y logros. */
+  planning: PLANNING,
+  /** Centro de información: piezas de ejemplo, feedback del visitante, radar y automatizaciones simuladas. */
+  info: { pieces: INFO_PIECES, feedback: {}, radar: TECH_RADAR, automations: AUTOMATIONS },
+  /** Estado de repaso por tarjeta (`mazo:índice`). */
+  study: {},
 });

@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-label="Vida 2.0, demo interactiva creada por Francisco Vitar">
+  <defs>
+    <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1"><stop stop-color="#171b3f"/><stop offset="1" stop-color="#24215a"/></linearGradient>
+    <linearGradient id="panel" x1="0" x2="1"><stop stop-color="#7366ff"/><stop offset="1" stop-color="#4e4ac7"/></linearGradient>
+    <radialGradient id="glow"><stop stop-color="#7869f8" stop-opacity=".35"/><stop offset="1" stop-color="#7869f8" stop-opacity="0"/></radialGradient>
+  </defs>
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <circle cx="1020" cy="110" r="420" fill="url(#glow)"/>
+  <circle cx="1090" cy="625" r="340" fill="url(#glow)"/>
+  <g fill="none" stroke="#a99fff" stroke-opacity=".18" stroke-width="2">
+    <circle cx="1040" cy="185" r="205"/><circle cx="1040" cy="185" r="140"/>
+    <circle cx="925" cy="500" r="125"/>
+  </g>
+  <g transform="translate(74 65)">
+    <circle cx="20" cy="20" r="19" fill="#7061ef"/><circle cx="44" cy="20" r="19" fill="#a096ff"/>
+    <circle cx="20" cy="44" r="19" fill="#4d45bb"/><circle cx="44" cy="44" r="19" fill="#c0baff"/>
+    <text x="88" y="52" fill="#fff" font-family="DejaVu Sans,Arial,sans-serif" font-size="52" font-weight="700" letter-spacing="-2">vida<tspan fill="#a9a9cd" font-weight="400">2.0</tspan></text>
+  </g>
+  <g transform="translate(74 230)">
+    <text x="0" y="0" fill="#bcb8ff" font-family="DejaVu Sans,Arial,sans-serif" font-size="20" font-weight="700" letter-spacing="3">DEMO INTERACTIVA</text>
+    <text x="0" y="82" fill="#fff" font-family="DejaVu Sans,Arial,sans-serif" font-size="52" font-weight="700">Todo lo que importa.</text>
+    <text x="0" y="145" fill="#fff" font-family="DejaVu Sans,Arial,sans-serif" font-size="52" font-weight="700">En un mismo lugar.</text>
+    <text x="0" y="212" fill="#d2d4ee" font-family="DejaVu Sans,Arial,sans-serif" font-size="24">Organización  ·  Bienestar  ·  Aprendizaje  ·  Finanzas</text>
+  </g>
+  <rect x="74" y="559" width="1052" height="1" fill="#b7b7df" opacity=".25"/>
+  <text x="74" y="597" fill="#d1d1ee" font-family="DejaVu Sans,Arial,sans-serif" font-size="20">Diseño y desarrollo · Francisco Vitar</text>
+  <rect x="905" y="560" width="221" height="44" rx="22" fill="url(#panel)"/>
+  <text x="1015" y="588" text-anchor="middle" fill="#fff" font-family="DejaVu Sans,Arial,sans-serif" font-size="18" font-weight="700">15 vistas · 4 áreas</text>
+</svg>

@@ -1,0 +1,233 @@
+/** Vista Gimnasio: sesión de hoy con registro de series, progreso (e1RM) e historial. Plantillas puras. */
+import { formatDecimal, formatNumber, parseExercise } from '../../logic.js';
+import { STABLE_BAND, STRENGTH_LEVELS, bestSet, e1rmSeries, epley, muscleSets, sessionSummary, setVolume, strengthBenchmark, weeklyVolume } from '../domain/gym.js';
+import { weeklyCardio } from '../domain/health.js';
+import { esc, fieldError, icon, note, pageHead, pct, segments, shortDate, tabs, vars } from './ui.js';
+
+export const withMeta = (gym) => ({ ...gym, exercises: gym.exercises.map((e) => ({ ...e, ...gym.exerciseMeta[e.id] })) });
+
+const fmtKg = (kg) => `${formatDecimal(kg, Number.isInteger(kg) ? 0 : kg * 4 % 2 ? 2 : 1)} kg`;
+const setText = (s) => (s.seconds != null ? `${s.seconds} s` : `${fmtKg(s.kg)} × ${s.reps}`);
+
+function comparisonChip(row) {
+  if (row.exercise.mode === 'time') {
+    const best = Math.max(0, ...row.sets.map((s) => s.seconds ?? 0));
+    const prev = Math.max(0, ...(row.previous?.sets ?? []).map((s) => s.seconds ?? 0));
+    if (!best || !prev) return '<span class="chip-cmp is-unknown">Sin comparación todavía</span>';
+    return `<span class="chip-cmp ${best > prev ? 'is-up' : best < prev ? 'is-down' : 'is-stable'}">${best} s vs ${prev} s el ${shortDate(row.previous.date)}</span>`;
+  }
+  const { state, delta } = row.comparison;
+  if (state === 'unknown') return '<span class="chip-cmp is-unknown">Registrá una serie para comparar</span>';
+  const label = state === 'stable' ? 'Estable' : state === 'up' ? 'Mejor' : 'Menor';
+  return `<span class="chip-cmp is-${state}" title="Cambio de e1RM contra la sesión comparable anterior">${label} · ${delta >= 0 ? '+' : '−'}${formatDecimal(Math.abs(delta * 100))} % e1RM vs ${shortDate(row.previous.date)}</span>`;
+}
+
+function setRow(exercise, slot, logged, ui) {
+  const editing = logged && ui.gymEdit === logged.id;
+  const n = slot.n ?? '+';
+  if (editing) {
+    const err = ui.formErrors[`edit-${logged.id}`] ?? {};
+    return `<li class="set is-editing"><form class="set-form" data-capture-form="set-edit" data-set="${logged.id}" data-exercise="${exercise.id}" novalidate>
+      <span class="mono">${n}</span>
+      ${exercise.mode === 'time'
+        ? `<label class="mini-field"><span class="sr-only">Segundos</span><input name="seconds" type="number" inputmode="numeric" min="5" max="600" value="${logged.seconds}" required/></label><span class="muted small">s</span>`
+        : `<label class="mini-field"><span class="sr-only">Peso en kg</span><input name="kg" type="number" inputmode="decimal" step="0.25" min="0" max="400" value="${logged.kg}" required/></label><label class="mini-field"><span class="sr-only">Repeticiones</span><input name="reps" type="number" inputmode="numeric" min="1" max="100" value="${logged.reps}" required/></label>`}
+      <span class="set-actions"><button type="submit" class="icon-btn icon-btn-ok" aria-label="Guardar serie">${icon('check', 16)}</button><button type="button" class="icon-btn" data-gym-edit="" aria-label="Cancelar edición">${icon('close', 16)}</button></span>
+    </form>${fieldError(err, 'kg')}${fieldError(err, 'reps')}${fieldError(err, 'seconds')}</li>`;
+  }
+  const shown = logged ?? slot;
+  const e1 = logged ? epley(logged.kg, logged.reps) : null;
+  return `<li class="set ${logged ? 'is-done' : ''}">
+    <span class="mono">${n}</span>
+    <span class="mono">${shown.seconds != null ? '—' : shown.kg ? fmtKg(shown.kg) : 'Corporal'}</span>
+    <span class="mono">${shown.seconds != null ? `${shown.seconds} s` : shown.reps}${e1 ? `<small class="e1rm">e1RM ${formatDecimal(e1)}</small>` : ''}</span>
+    <span class="set-actions">
+      ${logged ? `<button type="button" class="icon-btn" data-gym-edit="${logged.id}" aria-label="Editar serie ${n} de ${esc(exercise.name)}">${icon('edit', 15)}</button>` : ''}
+      ${slot.planned ? `<button type="button" class="set-btn" data-gym-set="${slot.key}" aria-pressed="${Boolean(logged)}" aria-label="Serie ${slot.n} de ${esc(exercise.name)}">${icon('check', 16)}</button>` : `<button type="button" class="icon-btn" data-gym-remove="${logged.id}" aria-label="Eliminar serie extra de ${esc(exercise.name)}">${icon('close', 15)}</button>`}
+    </span>
+  </li>`;
+}
+
+function exerciseCard(row, ui, data) {
+  const { exercise } = row;
+  const plan = parseExercise(exercise);
+  const today = data.gym.today;
+  const slots = Array.from({ length: plan.sets }, (_, i) => ({ n: i + 1, key: `${exercise.id}-${i + 1}`, planned: true, kg: plan.kg, reps: plan.repsNumber || null, seconds: exercise.mode === 'time' ? Number.parseInt(plan.reps, 10) : null }));
+  const extras = today.filter((s) => s.exerciseId === exercise.id && !s.planned);
+  const last = [...today].reverse().find((s) => s.exerciseId === exercise.id) ?? row.previous?.sets.at(-1);
+  const err = ui.formErrors[`set-${exercise.id}`] ?? {};
+  return `<section class="card exercise" aria-labelledby="ex-${exercise.id}">
+    <div class="card-head"><h2 id="ex-${exercise.id}">${esc(exercise.name)}</h2><span class="tag a-care">${exercise.muscle}</span></div>
+    <div class="exercise-meta">${comparisonChip(row)}${row.personalRecord ? '<span class="chip-cmp is-record">Récord personal (e1RM)</span>' : ''}</div>
+    <div class="set-head kicker" aria-hidden="true"><span>Serie</span><span>${exercise.mode === 'time' ? '' : 'Peso'}</span><span>${exercise.mode === 'time' ? 'Tiempo' : 'Reps'}</span><span></span></div>
+    <ul class="sets">
+      ${slots.map((slot) => setRow(exercise, slot, today.find((s) => s.id === slot.key), ui)).join('')}
+      ${extras.map((s) => setRow(exercise, { n: '+', planned: false }, s, ui)).join('')}
+    </ul>
+    <form class="inline-add" data-capture-form="set" data-exercise="${exercise.id}" novalidate aria-label="Agregar serie a ${esc(exercise.name)}">
+      ${exercise.mode === 'time'
+        ? `<label class="mini-field"><span>Segundos</span><input name="seconds" type="number" inputmode="numeric" min="5" max="600" value="${last?.seconds ?? 30}" required/></label>`
+        : `<label class="mini-field"><span>Kg</span><input name="kg" type="number" inputmode="decimal" step="0.25" min="0" max="400" value="${last?.kg ?? plan.kg}" required/></label><label class="mini-field"><span>Reps</span><input name="reps" type="number" inputmode="numeric" min="1" max="100" value="${last?.reps ?? plan.repsNumber}" required/></label>`}
+      <button type="submit" class="btn btn-outline btn-sm">${icon('check', 15)} Agregar serie</button>
+    </form>
+    ${fieldError(err, 'kg')}${fieldError(err, 'reps')}${fieldError(err, 'seconds')}
+  </section>`;
+}
+
+function hoyTab(data, ui, gym, summary) {
+  const sessions = data.gym.sessionsThisWeek + (data.gym.completed ? 1 : 0);
+  const planned = gym.exercises.reduce((t, e) => t + parseExercise(e).sets, 0);
+  return `
+    <div class="gym-top card">
+      <div><p class="eyebrow">Esta semana</p><p class="big mono">${sessions}/${data.gym.goal}<small> sesiones</small></p></div>
+      ${segments(sessions, data.gym.goal, 'care')}
+      <button type="button" class="btn ${data.gym.completed ? 'btn-ghost' : 'btn-dark'}" data-gym-toggle>${data.gym.completed ? `${icon('reset', 16)} Marcar como pendiente` : `${icon('check', 16)} Terminar sesión`}</button>
+    </div>
+    ${data.gym.completed ? `<p class="banner a-care" role="status"><strong>${sessions >= data.gym.goal ? 'Meta semanal cumplida.' : 'Sesión guardada.'}</strong> ${summary.setCount} de ${planned} series · ${formatNumber(summary.volume)} kg levantados (peso × repeticiones).</p>` : ''}
+    <dl class="stat-strip">
+      <div><dt>Series hoy</dt><dd class="mono">${summary.setCount}<small>/${planned}</small></dd></div>
+      <div><dt>Volumen</dt><dd class="mono">${formatNumber(summary.volume)}<small> kg</small></dd></div>
+      <div><dt>Récords e1RM</dt><dd class="mono">${summary.records}</dd></div>
+    </dl>
+    <div class="exercise-grid">${summary.exercises.map((row) => exerciseCard(row, ui, data)).join('')}</div>
+    ${note(`Tocá ✓ para registrar una serie planificada o usá «Agregar serie» con tu carga real. Cada cambio se puede editar o deshacer. e1RM (Epley) es un índice personal solo para series de 1–15 repeticiones; cambios dentro de ±${STABLE_BAND * 100} % se consideran estables.`)}`;
+}
+
+function lineChart(points) {
+  if (points.length < 2) return '<p class="empty">Hace falta más de una sesión para dibujar la tendencia.</p>';
+  const w = 640; const h = 200; const pad = 28;
+  const values = points.map((p) => p.e1rm);
+  const min = Math.min(...values) * 0.96; const max = Math.max(...values) * 1.03;
+  const x = (i) => pad + (i * (w - pad * 2)) / (points.length - 1);
+  const y = (v) => h - pad - ((v - min) / (max - min || 1)) * (h - pad * 2);
+  const path = points.map((p, i) => `${x(i).toFixed(1)},${y(p.e1rm).toFixed(1)}`).join(' ');
+  return `<svg class="line-chart" viewBox="0 0 ${w} ${h}" role="img" aria-label="e1RM por sesión: de ${formatDecimal(values[0])} a ${formatDecimal(values.at(-1))} kg">
+    <line class="axis" x1="${pad}" y1="${h - pad}" x2="${w - pad}" y2="${h - pad}"/>
+    <polyline class="line" points="${path}"/>
+    ${points.map((p, i) => `<circle class="pt ${p.isToday ? 'is-today' : ''}" cx="${x(i).toFixed(1)}" cy="${y(p.e1rm).toFixed(1)}" r="${p.isToday ? 6 : 4}"><title>${shortDate(p.date)}: ${fmtKg(p.kg)} × ${p.reps} → e1RM ${formatDecimal(p.e1rm)} kg</title></circle>`).join('')}
+    <text class="lbl" x="${pad}" y="${h - 6}">${shortDate(points[0].date)}</text>
+    <text class="lbl" x="${w - pad}" y="${h - 6}" text-anchor="end">${points.at(-1).isToday ? 'Hoy' : shortDate(points.at(-1).date)}</text>
+    <text class="lbl" x="${pad}" y="${y(points[0].e1rm) - 10}">${formatDecimal(points[0].e1rm)}</text>
+    <text class="lbl strong" x="${w - pad}" y="${y(points.at(-1).e1rm) - 12}" text-anchor="end">${formatDecimal(points.at(-1).e1rm)} kg</text>
+  </svg>`;
+}
+
+function progresoTab(data, ui, gym) {
+  const loadExercises = gym.exercises.filter((e) => e.mode === 'load');
+  const selected = loadExercises.find((e) => e.id === ui.gymExercise) ?? loadExercises[0];
+  const series = e1rmSeries(gym, selected.id, data.gym.today, data.today);
+  const recent = [...series].reverse().slice(0, 5);
+  const weeks = weeklyVolume(gym, data.gym.today, data.today);
+  const maxVol = Math.max(1, ...weeks.map((w) => w.volume));
+  const muscles = muscleSets(gym, data.gym.today, data.today);
+  const maxSets = Math.max(1, ...muscles.map((m) => m.sets));
+  const first = series[0]; const last = series.at(-1);
+  const benchmark = strengthBenchmark(selected.id, series);
+  return `
+    <div class="chips" role="group" aria-label="Elegir ejercicio">${loadExercises.map((e) => `<button type="button" class="chip-btn" data-gym-exercise="${e.id}" aria-pressed="${e.id === selected.id}">${esc(e.name)}</button>`).join('')}</div>
+    <div class="split">
+      <section class="card" aria-labelledby="e1rm-title">
+        <div class="card-head"><h2 id="e1rm-title">Fuerza estimada · ${esc(selected.name)}</h2><span class="muted small">${series.length} sesiones</span></div>
+        ${lineChart(series)}
+        <p class="caption">De ${formatDecimal(first.e1rm)} a ${formatDecimal(last.e1rm)} kg de e1RM (${last.e1rm >= first.e1rm ? '+' : '−'}${formatDecimal(Math.abs((last.e1rm - first.e1rm) / first.e1rm) * 100)} %). El set observado sigue visible en cada punto.</p>
+      </section>
+      <section class="card" aria-labelledby="recent-title">
+        <h2 id="recent-title">Mejores series recientes</h2>
+        <table class="data-table"><thead><tr><th scope="col">Fecha</th><th scope="col">Serie</th><th scope="col">e1RM</th></tr></thead>
+        <tbody>${recent.map((p) => `<tr class="${p.isToday ? 'is-today' : ''}"><td>${p.isToday ? 'Hoy' : shortDate(p.date)}</td><td class="mono">${fmtKg(p.kg)} × ${p.reps}</td><td class="mono">${formatDecimal(p.e1rm)}</td></tr>`).join('')}</tbody></table>
+      </section>
+    </div>
+    ${benchmark ? `<section class="card strength-benchmark a-care" aria-labelledby="benchmark-title">
+      <div class="card-head"><div><p class="eyebrow">Escala demostrativa · no normativa</p><h2 id="benchmark-title">Referencia de fuerza · ${esc(selected.name)}</h2></div><span class="state-pill">${benchmark.level}</span></div>
+      <div class="benchmark-levels">${STRENGTH_LEVELS.map((level, i) => `<span class="${level === benchmark.level ? 'is-current' : ''}">${level}<small class="mono">${benchmark.thresholds[i]} kg</small></span>`).join('')}</div>
+      ${benchmark.next ? `<p><strong class="mono">${formatDecimal(benchmark.current)} kg e1RM</strong> · siguiente nivel ${benchmark.nextLevel} (${benchmark.next} kg)</p>
+      <span class="bar bar-lg a-care" ${vars({ w: pct(benchmark.progress) })}><span></span></span>
+      <p class="muted small">${formatNumber(benchmark.progress)} % del tramo entre niveles. ${benchmark.eta ? `ETA matemática: ≈${benchmark.eta.days} días con tendencia log-lineal consistente (R² ${benchmark.eta.r2.toFixed(2)}). No es una predicción garantizada.` : 'Sin ETA: la tendencia no cumple los criterios de fiabilidad.'}</p>` : '<p>Escala demostrativa completa. No hay un siguiente nivel.</p>'}
+      <p class="caption">Los umbrales se inventaron para esta demo: NO son los valores del benchmark personal de Vida 2.0 ni equivalen a estándares por edad o peso.</p>
+    </section>` : ''}
+    <div class="split even">
+      <section class="card" aria-labelledby="vol-title">
+        <div class="card-head"><h2 id="vol-title">Volumen semanal</h2><span class="muted small">kg × reps · últimas 6 semanas</span></div>
+        <div class="month-bars a-care" role="img" aria-label="Volumen semanal de las últimas seis semanas">${weeks.map((w, i) => `<span class="${i === weeks.length - 1 ? 'is-today' : ''}"><small class="mono">${formatNumber(w.volume / 1000)}k</small><span ${vars({ h: pct((w.volume / maxVol) * 100) })}></span><small>${i === weeks.length - 1 ? 'Esta' : `−${weeks.length - 1 - i}`}</small></span>`).join('')}</div>
+      </section>
+      <section class="card" aria-labelledby="muscle-title">
+        <div class="card-head"><h2 id="muscle-title">Series por grupo muscular</h2><span class="muted small">últimos 7 días</span></div>
+        <ul class="hbars">${muscles.map((m) => `<li><span>${m.muscle}</span><span class="bar a-care" ${vars({ w: pct((m.sets / maxSets) * 100) })}><span></span></span><span class="mono">${m.sets}</span></li>`).join('')}</ul>
+      </section>
+    </div>
+    ${note('Distribución descriptiva, no una prescripción. En Vida 2.0 real estas comparaciones salen del historial canónico en Google Sheets; acá, de 12 sesiones sintéticas.')}`;
+}
+
+function rutinaTab(data) {
+  const proposal = [
+    { day: 'Día A', focus: 'Empuje + piernas', sets: [['Press de pecho', '3 × 8–12'], ['Sentadilla goblet', '3 × 8–12'], ['Elevación lateral', '2 × 12–15']] },
+    { day: 'Día B', focus: 'Tracción + core', sets: [['Remo sentado', '3 × 8–12'], ['Jalón', '3 × 8–12'], ['Plancha', '3 × 30–45 s']] },
+    { day: 'Día C', focus: 'Piernas + empuje', sets: [['Prensa', '3 × 10–12'], ['Press de pecho', '2 × 8–12'], ['Gemelos', '3 × 12–15']] },
+    { day: 'Día D', focus: 'Tracción + accesorios', sets: [['Remo sentado', '3 × 10–12'], ['Curl de bíceps', '2 × 10–12'], ['Plancha', '3 × 30–45 s']] },
+  ];
+  return `<section class="card" aria-labelledby="routine-title"><div class="card-head"><h2 id="routine-title">Rutina actual en la demo</h2><span class="tag a-care">Registro activo</span></div>
+    <p class="muted">${data.gym.exercises.map((e) => esc(e.name)).join(' · ')}. Esta es la única rutina que modifica las series de la visita.</p></section>
+    <div class="section-head"><h2>Alternativa visual «V4»</h2><span class="tag">Propuesta · no aplicada</span></div>
+    <div class="routine-grid">${proposal.map((d) => `<section class="card"><p class="eyebrow a-care">${d.day}</p><h2>${d.focus}</h2><ul class="movements">${d.sets.map(([name, sets]) => `<li><strong>${name}</strong><span class="mono">${sets}</span></li>`).join('')}</ul></section>`).join('')}</div>
+    ${note('Es un ejemplo gráfico de cómo Vida puede comparar versiones de rutina. No se extrajo la V4 personal, no reemplaza el plan activo y no constituye una prescripción de entrenamiento.')}`;
+}
+
+function historialTab(data, gym, summary) {
+  const sessions = [...gym.history].reverse();
+  const today = data.gym.today.length ? `<li class="card session is-today"><div class="session-head"><strong>Hoy · en curso</strong><span class="mono">${summary.setCount} series · ${formatNumber(summary.volume)} kg</span></div><div class="session-sets">${summary.exercises.filter((r) => r.sets.length).map((r) => `<span class="tag">${esc(r.exercise.name)} · ${r.best ? setText(r.best) : setText(r.sets[0])}</span>`).join('')}</div></li>` : '';
+  return `<ol class="session-list">${today}${sessions.map((s) => {
+    const volume = s.sets.reduce((t, x) => t + setVolume(x), 0);
+    const byExercise = gym.exercises.map((e) => ({ e, sets: s.sets.filter((x) => x.exerciseId === e.id) })).filter((x) => x.sets.length);
+    return `<li class="card session"><div class="session-head"><strong>${shortDate(s.date)}</strong><span class="mono">${s.sets.length} series · ${formatNumber(volume)} kg</span></div><div class="session-sets">${byExercise.map(({ e, sets }) => { const b = bestSet(sets); return `<span class="tag">${esc(e.name)} · ${b ? setText(b) : setText(sets[0])}</span>`; }).join('')}</div></li>`;
+  }).join('')}</ol>`;
+}
+
+const MODALITY = { bike: 'Bici', football: 'Fútbol' };
+
+function cardioTab(data, ui) {
+  const stepsWeek = data.health.history.slice(-7).reduce((t, d) => t + (d.steps ?? 0), 0);
+  const w = weeklyCardio(data.gym.cardio, stepsWeek);
+  const err = ui.formErrors.cardio ?? {};
+  const draft = ui.cardioDraft;
+  return `
+    <section class="card cardio-hero" aria-labelledby="met-title">
+      <div class="card-head"><div><p class="eyebrow a-care">Carga semanal equivalente</p><h2 id="met-title" class="hero-number mono">${formatNumber(w.total)}<span> de ${formatNumber(w.target)} MET-min</span></h2></div><span class="state-pill ${w.ratio >= 1 ? 'is-add' : 'is-watch'}">${Math.round(w.ratio * 100)} %</span></div>
+      <span class="bar bar-lg a-care" ${vars({ w: pct(w.ratio * 100) })}><span></span></span>
+      <p class="muted small">Objetivo derivado del plan: 8.000 pasos/día, 120 min de bici Zona 2 y 1 partido por semana. Es una equivalencia práctica de cumplimiento, no una medición de gasto energético.</p>
+    </section>
+    <div class="split even">
+      <section class="card" aria-labelledby="direct-title">
+        <h2 id="direct-title">Cumplimiento directo</h2>
+        <ul class="hbars direct">${w.direct.map((d) => `<li><span>${d.label}</span><span class="bar a-care" ${vars({ w: pct((d.done / d.goal) * 100) })}><span></span></span><span class="mono">${formatNumber(d.done)}/${formatNumber(d.goal)}</span></li>`).join('')}</ul>
+        ${w.equivalents ? `<p class="muted small">Para cubrir los ${formatNumber(w.target - w.total)} MET-min restantes con una sola modalidad: ≈${formatNumber(w.equivalents.steps)} pasos, ${w.equivalents.bikeMinutes} min de bici o ${formatDecimal(w.equivalents.matches)} partidos. Comparativo, no una sugerencia de reemplazar el plan.</p>` : '<p class="muted small">La equivalencia semanal está cubierta. Puede superar el 100 %; más no es automáticamente mejor.</p>'}
+      </section>
+      <section class="card" aria-labelledby="sessions-title">
+        <h2 id="sessions-title">Sesiones de la semana</h2>
+        <ul class="movements">
+          <li><span><strong>Pasos (7 días)</strong><small>proxy 100 pasos/min × 3,5 MET · confianza baja</small></span><span class="mono">${formatNumber(w.stepsMetMin)}</span></li>
+          ${w.items.map((s) => `<li><span><strong>${MODALITY[s.modality]} · ${s.minutes} min</strong><small>${shortDate(s.date)} · ${formatDecimal(s.met)} MET por ${s.basis} · confianza ${s.confidence}</small></span><span class="mono">${formatNumber(s.metMin)}</span></li>`).join('')}
+        </ul>
+      </section>
+    </div>
+    <form class="card add-food" data-capture-form="cardio" novalidate aria-labelledby="cardio-add-title">
+      <h2 id="cardio-add-title">Registrar cardio</h2>
+      <div class="form-grid">
+        <label class="field"><span>Modalidad</span><select name="modality">${Object.entries(MODALITY).map(([id, label]) => `<option value="${id}" ${draft.modality === id ? 'selected' : ''}>${label}</option>`).join('')}</select></label>
+        <label class="field"><span>Minutos</span><input name="minutes" type="number" inputmode="numeric" min="5" max="300" value="${draft.minutes}" required/>${fieldError(err, 'minutes')}</label>
+        <label class="field"><span>Esfuerzo percibido (1–10, opcional)</span><input name="rpe" type="number" inputmode="numeric" min="1" max="10" value="${draft.rpe ?? ''}"/>${fieldError(err, 'rpe')}</label>
+        <label class="field"><span>Potencia media en W (opcional)</span><input name="watts" type="number" inputmode="numeric" min="20" max="600" value="${draft.watts ?? ''}"/>${fieldError(err, 'watts')}</label>
+      </div>
+      <p class="muted small">Con potencia la confianza es alta; con esfuerzo percibido, media; sin ninguno, baja.</p>
+      <button type="submit" class="btn btn-dark">${icon('check', 16)} Agregar sesión</button>
+    </form>`;
+}
+
+export function gymView(data, ui) {
+  const gym = withMeta(data.gym);
+  const summary = sessionSummary(gym, data.gym.today);
+  const tab = ui.gymTab;
+  return `${pageHead('Sesión de hoy', 'Progresá a tu ritmo.', `${gym.exercises.length} ejercicios planificados · historial de ${gym.history.length} sesiones. Registrá series y mirá cómo cambian tus comparaciones.`)}
+    ${tabs('gym-tab', tab, [['hoy', 'Hoy'], ['progreso', 'Progreso'], ['cardio', 'Cardio'], ['rutina', 'Rutina'], ['historial', 'Historial']])}
+    ${tab === 'progreso' ? progresoTab(data, ui, gym) : tab === 'cardio' ? cardioTab(data, ui) : tab === 'rutina' ? rutinaTab(data) : tab === 'historial' ? historialTab(data, gym, summary) : hoyTab(data, ui, gym, summary)}
+    ${note('Rutina y pesos ficticios. No son una prescripción de entrenamiento.')}`;
+}
