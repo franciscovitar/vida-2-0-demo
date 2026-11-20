@@ -40,6 +40,7 @@ let past = [];
 let currentTab = tabs.has(location.hash.slice(1)) ? location.hash.slice(1) : 'hoy';
 let toastTimer = null;
 let captureOpener = null;
+let suppressCaptureCloseFocus = false;
 
 function announce(message) {
   announcement.textContent = message;
@@ -151,7 +152,7 @@ function renderCapture() {
   const dialog = document.querySelector('#capture-dialog');
   if (!dialog || !ui.capture.open) return;
   const key = focusKey(dialog);
-  dialog.innerHTML = captureDialog(ui.capture, data);
+  dialog.innerHTML = captureDialog(ui.capture, data, ui.tourOpen && ui.tourStep === 0);
   if (key) dialog.querySelector(key)?.focus();
 }
 
@@ -184,6 +185,7 @@ function resetDemo() {
 
 function openCapture(type) {
   const dialog = document.querySelector('#capture-dialog');
+  suppressCaptureCloseFocus = false;
   ui.capture = { ...freshCapture(), open: true, mode: type ? 'form' : 'chat', formType: type || 'set' };
   captureOpener = document.activeElement ?? null;
   if (!dialog) return;
@@ -195,7 +197,10 @@ function openCapture(type) {
 function closeCapture({ restoreFocus = true } = {}) {
   ui.capture.open = false;
   const dialog = document.querySelector('#capture-dialog');
-  if (dialog?.open) dialog.close();
+  if (dialog?.open) {
+    suppressCaptureCloseFocus = !restoreFocus;
+    dialog.close();
+  }
   if (restoreFocus) captureOpener?.focus?.();
 }
 
@@ -410,6 +415,7 @@ const clickHandlers = {
     renderCapture();
   },
   tour: (value) => {
+    if (document.querySelector('#capture-dialog')?.open) closeCapture({ restoreFocus: false });
     if (value === 'start') {
       ui.tourOpen = true;
       ui.tourStep = 0;
@@ -675,7 +681,8 @@ document.addEventListener('keydown', (event) => {
 
 document.querySelector('#capture-dialog')?.addEventListener('close', () => {
   ui.capture.open = false;
-  captureOpener?.focus?.();
+  if (!suppressCaptureCloseFocus) captureOpener?.focus?.();
+  suppressCaptureCloseFocus = false;
 });
 
 window.addEventListener('hashchange', () => {

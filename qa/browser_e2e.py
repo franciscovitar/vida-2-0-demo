@@ -40,9 +40,15 @@ def check(page, url, width, errors, requests):
 
     page.locator('[data-tour="start"]').click()
     assert "Recorrido guiado · 1 de 3" in page.locator("#panel").inner_text()
-    page.locator('[data-tour="next"]').click()
+    page.locator('.recruiter-guide [data-open-capture]').click()
+    page.locator('[data-capture-example="2"]').click()
+    page.locator('[data-capture-form="confirm"] button[type="submit"]').click()
+    assert "Continuar: ver resultado" in page.locator('#capture-dialog').inner_text()
+    page.locator('#capture-dialog [data-tour="next"]').click()
+    assert not page.locator('#capture-dialog').evaluate('(dialog) => dialog.open')
     assert "Recorrido guiado · 2 de 3" in page.locator("#panel").inner_text()
     assert page.locator("#mobile-nav").input_value() == "finanzas"
+    assert "Supermercado" in page.locator("#panel").inner_text()
     page.locator('[data-tour="next"]').click()
     assert page.locator("#mobile-nav").input_value() == "sistema"
     assert "El desafío detrás del producto" in page.locator("#panel").inner_text()

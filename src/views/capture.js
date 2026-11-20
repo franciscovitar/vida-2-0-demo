@@ -89,7 +89,7 @@ function quickForm(capture, data) {
     <form class="capture-quick" data-capture-form="quick" novalidate><div class="form-grid">${body}</div><button type="submit" class="btn btn-dark btn-block">${icon('check', 16)} Guardar</button></form>`;
 }
 
-export function captureDialog(capture, data) {
+export function captureDialog(capture, data, tourCapture = false) {
   const chat = capture.mode === 'chat';
   return `<div class="dlg">
     <header class="dlg-head"><div><p class="kicker">Captura</p><h2 id="capture-title">Registrar</h2></div><button type="button" class="icon-btn" data-capture-close aria-label="Cerrar">${icon('close', 18)}</button></header>
@@ -102,6 +102,7 @@ export function captureDialog(capture, data) {
       <p class="honesty">${icon('info', 15)}<span><strong>Intérprete local por reglas, sin IA.</strong> Reconoce patrones acotados y te muestra lo que no entendió. En Vida 2.0 real, esta interpretación la hace un proyecto de ChatGPT con Skills del Personal AI System, y el dato se guarda en su fuente canónica. <button type="button" class="link-btn" data-tab="sistema">Ver cómo funciona</button></span></p>
       ${preview(capture, data)}` : quickForm(capture, data)}
     ${capture.lastApplied ? `<p class="capture-done" role="status">${icon('check', 15)} ${esc(capture.lastApplied)}</p>` : ''}
+    ${capture.lastApplied && tourCapture ? `<button type="button" class="btn btn-dark" data-tour="next">Continuar: ver resultado ${icon('arrow', 16)}</button>` : ''}
     <p class="muted small dlg-foot">Los registros quedan en la memoria de esta pestaña y se pueden deshacer.</p>
   </div>`;
 }

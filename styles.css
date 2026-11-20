@@ -718,6 +718,16 @@ h2 { font-size: 18px; font-weight: 600; letter-spacing: -0.015em; line-height: 1
 .source-list dt { font-weight: 600; }
 .source-list dd { margin: 0; color: var(--ink-3); }
 .data-table.compare td { color: var(--ink-3); }
+.compare-mobile-label { display: none; }
+@media (max-width: 600px) {
+  .data-table.compare { display: block; }
+  .data-table.compare thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .data-table.compare tbody { display: grid; gap: 10px; }
+  .data-table.compare tbody tr { display: grid; gap: 5px; padding: 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--ground); }
+  .data-table.compare tbody th, .data-table.compare tbody td { display: block; border: 0; padding: 2px 0; overflow-wrap: anywhere; }
+  .data-table.compare tbody th { font-size: 15px; }
+  .compare-mobile-label { display: block; margin-bottom: 2px; font-size: 11px; font-weight: 700; color: var(--ink); }
+}
 .cap-list li { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 10px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
 .status-pill { display: inline-flex; justify-content: center; min-width: 150px; padding: 3px 8px; border-radius: 999px; font-size: 11px; font-weight: 600; white-space: nowrap; }
 .status-pill.is-impl { background: var(--learn-bg); color: var(--learn-fg); }

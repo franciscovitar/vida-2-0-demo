@@ -8,11 +8,20 @@
 
 **Recorrido recomendado (90 segundos):** abrí la demo, pulsá **«Recorrido guiado · 90 s»**, probá registrar un gasto, observá cómo cambia Finanzas y terminá en la explicación de la arquitectura.
 
+**Vista rápida del recorrido:** tres capturas reales de la demo, desde el registro hasta la explicación técnica.
+
+![Recorrido visual: registrar, ver el impacto y entender la arquitectura](./docs/media/recorrido.gif)
+
+<details>
+<summary>Ver las tres capturas completas de la interfaz</summary>
+
 ![Vista inicial de Vida 2.0 Demo](./docs/media/inicio-desktop.jpg)
 
 | Vista de producto | Arquitectura explicada |
 | --- | --- |
 | ![Registro y paneles de ejemplo](./docs/media/modulos-desktop.jpg) | ![Cómo funciona Vida 2.0](./docs/media/arquitectura-desktop.jpg) |
+
+</details>
 
 *Quick English overview:* Interactive showcase of a personal information system. Fifteen connected views, synthetic data, domain calculations, local undo, and a guided walkthrough. The real Next.js/TypeScript system is documented separately; this demo has no connected accounts or AI model.
 

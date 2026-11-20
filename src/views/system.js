@@ -100,7 +100,7 @@ export function systemView(ui) {
     </section>
     <div class="split even">
       <section class="card" aria-labelledby="sources-title"><h2 id="sources-title">Dónde vive cada dato</h2><dl class="source-list">${SOURCES.map(([k, v]) => `<div><dt>${k}</dt><dd>${v}</dd></div>`).join('')}</dl></section>
-      <section class="card" aria-labelledby="compare-title"><h2 id="compare-title">Sistema real vs. demo</h2><div class="table-wrap"><table class="data-table compare"><thead><tr><th scope="col"></th><th scope="col">Vida 2.0</th><th scope="col">Demo</th></tr></thead><tbody>${COMPARE.map(([a, b, c]) => `<tr><th scope="row">${a}</th><td>${b}</td><td>${c}</td></tr>`).join('')}</tbody></table></div></section>
+      <section class="card" aria-labelledby="compare-title"><h2 id="compare-title">Sistema real vs. demo</h2><div class="table-wrap"><table class="data-table compare"><thead><tr><th scope="col"></th><th scope="col">Vida 2.0</th><th scope="col">Demo</th></tr></thead><tbody>${COMPARE.map(([a, b, c]) => `<tr><th scope="row">${a}</th><td><span class="compare-mobile-label">Vida 2.0</span>${b}</td><td><span class="compare-mobile-label">Demo</span>${c}</td></tr>`).join('')}</tbody></table></div></section>
     </div>
     <section aria-labelledby="health-title" class="system-block">
       <h2 id="health-title">Salud: de la pulsera a una lectura explicable</h2>

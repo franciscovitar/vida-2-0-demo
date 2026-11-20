@@ -4,12 +4,19 @@ import { test } from 'node:test';
 import { fileURLToPath } from 'node:url';
 
 import { initialData } from './data.js';
+import { captureDialog } from './src/views/capture.js';
 
 const root = new URL('./', import.meta.url);
 
 test('el selector de módulos conserva su nombre accesible cuando el texto visual se oculta en móvil', async () => {
   const html = await readFile(new URL('./index.html', import.meta.url), 'utf8');
   assert.match(html, /<select\s+id="mobile-nav"\s+aria-label="Ir a un módulo"/);
+});
+
+test('el recorrido muestra cómo continuar después de guardar y no altera el registro normal', () => {
+  const state = { mode: 'chat', text: '', result: null, lastApplied: 'Guardado: gasto de ejemplo.' };
+  assert.match(captureDialog(state, initialData, true), /data-tour="next">Continuar: ver resultado/);
+  assert.doesNotMatch(captureDialog(state, initialData), /Continuar: ver resultado/);
 });
 
 function mockDom() {
