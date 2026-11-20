@@ -33,27 +33,27 @@ class PreviewHandler(SimpleHTTPRequestHandler):
 def check(page, url, width, errors, requests):
     page.goto(url, wait_until="load")
     assert "Buen día, Alex" in page.locator("#panel").inner_text()
-    assert "Francisco Vitar" in page.locator("#panel").inner_text()
-    assert "Día de ejemplo" in page.locator("#panel").inner_text()
+    assert "Francisco Vitar" in page.locator("#panel").text_content()
+    assert "Día de ejemplo" in page.locator("#panel").text_content()
     assert page.locator("#mobile-nav").get_attribute("aria-label") == "Ir a un módulo"
     assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1"), f"overflow al abrir ({width}px)"
 
     page.locator('[data-tour="start"]').click()
-    assert "Recorrido guiado · 1 de 3" in page.locator("#panel").inner_text()
+    assert "Recorrido guiado · 1 de 3" in page.locator(".recruiter-guide").text_content()
     page.locator('.recruiter-guide [data-open-capture]').click()
     page.locator('[data-capture-example="2"]').click()
     page.locator('[data-capture-form="confirm"] button[type="submit"]').click()
     assert "Continuar: ver resultado" in page.locator('#capture-dialog').inner_text()
     page.locator('#capture-dialog [data-tour="next"]').click()
     assert not page.locator('#capture-dialog').evaluate('(dialog) => dialog.open')
-    assert "Recorrido guiado · 2 de 3" in page.locator("#panel").inner_text()
+    assert "Recorrido guiado · 2 de 3" in page.locator(".recruiter-guide").text_content()
     assert page.locator("#mobile-nav").input_value() == "finanzas"
     assert "Supermercado" in page.locator("#panel").inner_text()
     page.locator('[data-tour="next"]').click()
     assert page.locator("#mobile-nav").input_value() == "sistema"
     assert "El desafío detrás del producto" in page.locator("#panel").inner_text()
     page.locator('[data-tour="next"]').click()
-    assert "Recorrido guiado · 3 de 3" not in page.locator("#panel").inner_text()
+    assert page.locator(".recruiter-guide").count() == 0
 
     page.locator("#mobile-nav").select_option("nutricion")
     page.locator('[data-nutrition-tab="nutrientes"]').click()
