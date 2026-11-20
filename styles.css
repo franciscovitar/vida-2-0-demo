@@ -834,6 +834,50 @@ h2 { font-size: 18px; font-weight: 600; letter-spacing: -0.015em; line-height: 1
 
 .hbars.direct li { grid-template-columns: 90px minmax(0, 1fr) auto; }
 
+/* Plan y logros */
+.continuity-grid, .goal-list, .dimension-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 14px; align-items: start; }
+.dimension-grid { grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
+.continuity { display: grid; gap: 10px; border-left: 3px solid var(--line-2); }
+.continuity.is-add { border-left-color: var(--learn); }
+.continuity.is-watch { border-left-color: var(--life); }
+.continuity.is-over { border-left-color: var(--care-fill); }
+.continuity h2 { font-size: 17px; }
+.continuity .link-btn { justify-self: start; }
+.next-step { display: grid; gap: 8px; }
+.next-step dt { font-size: 12px; color: var(--ink-3); }
+.next-step dd { margin: 0; font-size: 15px; font-weight: 500; }
+.next-step .is-blocker dd { color: var(--care-fg); }
+.continuity-form { display: grid; gap: 10px; }
+.row-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.goal { display: grid; gap: 12px; }
+.goal-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.goal h2 { font-size: 17px; }
+.goal .bar > span { background: var(--c); }
+.milestones { display: grid; margin: 0 -8px; }
+.week-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px; margin: 0; }
+.week-grid > div { display: grid; gap: 2px; padding: 12px; border-radius: 12px; background: var(--ground); }
+.week-grid dt { font-size: 12px; color: var(--ink-3); }
+.week-grid dd { margin: 0; font-size: 20px; font-weight: 500; }
+.week-grid small { font-size: 11px; color: var(--org-fg); }
+.review-form { display: grid; gap: 14px; }
+.field-wide { grid-column: 1 / -1; }
+.review { display: grid; gap: 8px; }
+.review-dl { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin: 0; }
+.review-dl dt { font-size: 12px; color: var(--ink-3); }
+.review-dl dd { margin: 0; font-size: 14px; }
+.achievement-list { display: grid; gap: 10px; }
+.achievement { display: grid; grid-template-columns: 40px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 14px 18px; }
+.achievement-icon { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 12px; background: var(--life-bg); color: var(--life-fg); }
+
+/* Inglés */
+.lab-hero .hero-number { font-size: clamp(28px, 3vw, 36px); }
+.dimension { display: grid; gap: 6px; padding: 16px; }
+.pattern-hint { display: grid; gap: 8px; padding: 12px 14px; border-radius: 12px; background: var(--org-bg); color: var(--org-fg); font-size: 14px; }
+.pattern-hint p { display: flex; gap: 8px; align-items: flex-start; }
+.pattern-hint .btn, .pattern-hint .tag { justify-self: start; }
+.movements .chip-sm { white-space: nowrap; flex: none; }
+@media (max-width: 720px) { .dimension { padding: 12px 14px; } .dimension-grid { gap: 8px; } }
+
 /* Centro de información */
 .piece-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 14px; align-items: start; }
 .piece { display: grid; gap: 10px; }

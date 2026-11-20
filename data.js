@@ -2,7 +2,7 @@
  * Persona, proyectos y eventos completamente inventados para un showcase público.
  * Ningún dato se importa desde los mocks personales ni desde las integraciones de Vida 2.0.
  */
-import { AUTOMATIONS, CARDIO_WEEK, EXERCISE_META, INFO_PIECES, TECH_RADAR, FOOD_CATALOG, GYM_HISTORY, HEALTH_HISTORY, HOUSEHOLD_NEEDS, NUTRITION_HISTORY, SERIES } from './src/data/synthetic.js';
+import { AUTOMATIONS, CARDIO_WEEK, ENGLISH_LAB, EXERCISE_META, PLANNING, INFO_PIECES, TECH_RADAR, FOOD_CATALOG, GYM_HISTORY, HEALTH_HISTORY, HOUSEHOLD_NEEDS, NUTRITION_HISTORY, SERIES } from './src/data/synthetic.js';
 
 export const initialData = Object.freeze({
   /** Fecha ISO del escenario (martes 17/11/2026). */
@@ -107,12 +107,13 @@ export const initialData = Object.freeze({
     ] },
   ],
   english: {
+    lab: ENGLISH_LAB,
     streak: 8,
     unit: 'Present perfect y expresiones de tiempo',
     questions: [
-      { prompt: 'She has lived in London ___ 2022.', choices: ['for', 'since', 'during'], correct: 'since', note: '“Since” marca el punto en el tiempo desde el que sucede algo.' },
-      { prompt: 'I am looking forward ___ you.', choices: ['to meeting', 'meet', 'to meet'], correct: 'to meeting', note: 'Después de “look forward to” usamos un sustantivo o la forma -ing.' },
-      { prompt: 'We have worked together ___ three months.', choices: ['since', 'for', 'from'], correct: 'for', note: '“For” expresa una duración.' },
+      { prompt: 'She has lived in London ___ 2022.', pattern: 'w-since', choices: ['for', 'since', 'during'], correct: 'since', note: '“Since” marca el punto en el tiempo desde el que sucede algo.' },
+      { prompt: 'I am looking forward ___ you.', pattern: 'w-forward', choices: ['to meeting', 'meet', 'to meet'], correct: 'to meeting', note: 'Después de “look forward to” usamos un sustantivo o la forma -ing.' },
+      { prompt: 'We have worked together ___ three months.', pattern: 'w-since', choices: ['since', 'for', 'from'], correct: 'for', note: '“For” expresa una duración.' },
     ],
   },
   finances: {
@@ -175,6 +176,8 @@ export const initialData = Object.freeze({
   /** Reposición del hogar: historial de compras por producto y correcciones del usuario. */
   household: { needs: HOUSEHOLD_NEEDS, corrections: [], extraPurchases: [] },
   series: SERIES,
+  /** Organizar: continuidad por proyecto, objetivos con hitos, revisiones y logros. */
+  planning: PLANNING,
   /** Centro de información: piezas de ejemplo, feedback del visitante, radar y automatizaciones simuladas. */
   info: { pieces: INFO_PIECES, feedback: {}, radar: TECH_RADAR, automations: AUTOMATIONS },
   /** Estado de repaso por tarjeta (`mazo:índice`). */

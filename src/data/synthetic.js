@@ -160,6 +160,67 @@ export const AUTOMATIONS = Object.freeze([
   { id: 'technical-watchdog', label: 'Vigilancia técnica', description: 'Verifica que las integraciones respondan y alerta si algo falla.', enabled: true, schedule: 'Cada 6 horas', runs: [{ id: 'r5', at: '2026-11-17T06:00', state: 'failed', detail: 'Tiempo de espera agotado en una fuente; reintento programado' }, { id: 'r6', at: '2026-11-17T00:00', state: 'succeeded', detail: 'Todas las fuentes responden' }] },
 ]);
 
+/* ───────────── Organizar: continuidad, objetivos, logros y revisiones ───────────── */
+
+export const PLANNING = Object.freeze({
+  continuity: [
+    { id: 'c-aurora', source: 'projects', title: 'Producto Aurora', nextAction: 'Ensayar la demo con el equipo', blocker: null, lastProgress: '2026-11-16' },
+    { id: 'c-boreal', source: 'projects', title: 'Sitio Boreal', nextAction: 'Revisar la versión para celular', blocker: 'Esperando comentarios de diseño', lastProgress: '2026-11-05' },
+    { id: 'c-ruta', source: 'projects', title: 'Ruta de aprendizaje', nextAction: 'Retomar el módulo de TypeScript', blocker: null, lastProgress: '2026-10-28' },
+    { id: 'c-course', source: 'learning', title: 'Curso online · Tipos avanzados', nextAction: 'Completar el ejercicio 4 de genéricos', blocker: null, lastProgress: '2026-11-14' },
+  ],
+  goals: [
+    { id: 'g-aurora', title: 'Lanzar Producto Aurora', area: 'org', due: '2026-12-15', milestones: [{ id: 'm1', label: 'Prototipo navegable', done: true }, { id: 'm2', label: 'Pruebas con 5 usuarios', done: true }, { id: 'm3', label: 'Demo del 20 de noviembre', done: false }, { id: 'm4', label: 'Lanzamiento público', done: false }] },
+    { id: 'g-run', title: 'Correr 5 km sin parar', area: 'care', due: '2027-01-31', milestones: [{ id: 'm5', label: '2 km', done: true }, { id: 'm6', label: '3 km', done: true }, { id: 'm7', label: '4 km', done: false }, { id: 'm8', label: '5 km', done: false }] },
+    { id: 'g-english', title: 'Consolidar inglés B1', area: 'learn', due: '2027-03-01', milestones: [{ id: 'm9', label: '10 sesiones de conversación', done: true }, { id: 'm10', label: 'Usar «since / for» sin corrección', done: false }, { id: 'm11', label: 'Explicar un proyecto en 2 minutos', done: false }] },
+  ],
+  achievements: [
+    { id: 'a1', title: 'Primer prototipo de Aurora presentado', category: 'PROJECT', assertion: 'OWNER_VERIFIED', date: '2026-10-02' },
+    { id: 'a2', title: 'Curso de accesibilidad web completado', category: 'ACADEMIC', assertion: 'SELF_REPORTED', date: '2026-09-18' },
+    { id: 'a3', title: 'Diez sesiones de gimnasio en un mes', category: 'PERSONAL', assertion: 'SELF_REPORTED', date: '2026-10-31' },
+  ],
+  reviews: [
+    { id: 'w45', week: '2–8 nov', closedAt: '2026-11-09', wentWell: 'Terminé las pruebas con usuarios de Aurora.', adjust: 'Dormí tarde tres noches seguidas.', focus: 'Preparar la demo del 20.' },
+  ],
+});
+
+/* ───────────── Inglés: perfil del laboratorio (estructura del original, contenido ficticio) ───────────── */
+
+export const ENGLISH_LAB = Object.freeze({
+  workingLevel: 'B1 (provisional)',
+  baseline: 'provisional',
+  updated: '2026-11-15',
+  dimensions: [
+    { id: 'range', label: 'Rango', state: 'developing', trend: 'improving', confidence: 'medium', evidence: 6 },
+    { id: 'accuracy', label: 'Precisión', state: 'developing', trend: 'inconsistent', confidence: 'medium', evidence: 6 },
+    { id: 'fluency', label: 'Fluidez', state: 'developing', trend: 'improving', confidence: 'medium', evidence: 6 },
+    { id: 'interaction', label: 'Interacción', state: 'stable', trend: 'stable', confidence: 'medium', evidence: 6 },
+    { id: 'coherence', label: 'Coherencia', state: 'developing', trend: 'improving', confidence: 'medium', evidence: 5 },
+    { id: 'pronunciation', label: 'Pronunciación', state: 'insufficient', trend: 'insufficient', confidence: 'low', evidence: 0 },
+    { id: 'vocabulary', label: 'Vocabulario activo', state: 'developing', trend: 'improving', confidence: 'medium', evidence: 6 },
+    { id: 'repair', label: 'Autocorrección', state: 'strong', trend: 'stable', confidence: 'medium', evidence: 6 },
+    { id: 'complexity', label: 'Complejidad espontánea', state: 'developing', trend: 'improving', confidence: 'low', evidence: 3 },
+  ],
+  weaknesses: [
+    { id: 'w-since', pattern: '«since» vs «for» con períodos de tiempo', evidence: 4, trend: 'improving', card: { front: '¿«since» o «for»? I have worked here ___ two years.', back: 'For: expresa una duración (two years).', accepted: ['for'] } },
+    { id: 'w-third', pattern: 'Tercera persona: «he has», no «he have»', evidence: 5, trend: 'improving', card: { front: 'Corregí: «She have a new job».', back: 'She has a new job.', accepted: ['she has a new job'] } },
+    { id: 'w-forward', pattern: '«look forward to» + -ing', evidence: 2, trend: 'stable', card: { front: 'Completá: I look forward to ___ (meet) you.', back: 'Meeting: después de «to» va la forma -ing.', accepted: ['meeting'] } },
+  ],
+  vocabulary: [
+    { expression: 'figure out', meaning: 'resolver, entender', status: 'active' },
+    { expression: 'follow up', meaning: 'dar seguimiento', status: 'learning' },
+    { expression: 'trade-off', meaning: 'compromiso entre opciones', status: 'learning' },
+    { expression: 'get the hang of', meaning: 'agarrarle la mano', status: 'new' },
+  ],
+  sessions: [
+    { id: 's1', date: '2026-11-03', type: 'conversation', minutes: 25, focus: 'Presentar un proyecto' },
+    { id: 's2', date: '2026-11-06', type: 'listening', minutes: 20, focus: 'Podcast de producto' },
+    { id: 's3', date: '2026-11-09', type: 'conversation', minutes: 30, focus: 'Dar y recibir feedback' },
+    { id: 's4', date: '2026-11-12', type: 'writing', minutes: 15, focus: 'Correo de seguimiento' },
+    { id: 's5', date: '2026-11-15', type: 'conversation', minutes: 25, focus: 'Negociar plazos' },
+  ],
+});
+
 const HISTORY_DATES = ['2026-11-04', '2026-11-05', '2026-11-06', '2026-11-07', '2026-11-08', '2026-11-09', '2026-11-10', '2026-11-11', '2026-11-12', '2026-11-13', '2026-11-14', '2026-11-15'];
 const DOW = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
 

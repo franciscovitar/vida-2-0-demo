@@ -13,6 +13,8 @@ import { mediaView } from './src/views/media.js';
 import { shoppingView } from './src/views/shopping.js';
 import { studyView } from './src/views/study.js';
 import { infoView } from './src/views/info.js';
+import { englishView } from './src/views/english.js';
+import { planningView } from './src/views/planning.js';
 import { AREAS, LABELS, areaOfTab, areaProgress, eventStatus, habitArea, taskArea, toMinutes } from './logic.js';
 
 const AGENDA_DAYS = [
@@ -163,36 +165,18 @@ function agendaView(data, ui) {
 
 /* ─────────────────────────── Aprender ─────────────────────────── */
 
-function inglesView(data, ui) {
-  const q = data.english.questions[ui.englishIndex];
-  const answered = ui.englishAnswer !== '';
-  const correct = answered && ui.englishAnswer === q.correct;
-  return `${pageHead(data.english.unit, 'Cinco minutos para mejorar.', 'Completá la oración. Cada respuesta trae una explicación breve.')}
-    <div class="streak a-learn">${icon('star', 20)}<span><strong>${data.english.streak} días</strong> de racha · pregunta ${ui.englishIndex + 1} de ${data.english.questions.length}</span>${segments(ui.englishIndex + (answered ? 1 : 0), data.english.questions.length, 'learn')}</div>
-    <section class="card quiz" aria-labelledby="quiz-q">
-      <h2 id="quiz-q" class="quiz-prompt">${q.prompt}</h2>
-      <div class="choices" role="group" aria-label="Opciones">${q.choices.map((choice) => {
-        const state = answered && choice === q.correct ? 'is-correct' : answered && choice === ui.englishAnswer ? 'is-wrong' : '';
-        const mark = state === 'is-correct' ? 'Correcta' : state === 'is-wrong' ? 'Tu respuesta' : '';
-        return `<button type="button" class="choice ${state}" data-english-answer="${choice}" ${answered ? 'disabled' : ''}><span>${choice}</span>${mark ? `<small>${mark}</small>` : ''}</button>`;
-      }).join('')}</div>
-      ${answered ? `<div class="feedback ${correct ? 'is-correct' : 'is-wrong'}" role="status"><strong>${correct ? '¡Muy bien!' : `Casi. Seguí practicando: la respuesta es «${q.correct}».`}</strong><p>${q.note}</p></div><button type="button" class="btn btn-dark btn-block" data-next-english>${ui.englishIndex === data.english.questions.length - 1 ? 'Volver a empezar' : 'Siguiente pregunta'}</button>` : ''}
-    </section>
-    ${note('Preguntas predefinidas, sin IA generativa, evaluación adaptativa ni registro de aprendizaje.')}`;
-}
-
 /* ───────────────────────────── Vivir ───────────────────────────── */
 
 const VIEWS = {
-  hoy: hoyView, tareas: tareasView, proyectos: proyectosView, agenda: agendaView,
+  hoy: hoyView, tareas: tareasView, proyectos: proyectosView, agenda: agendaView, plan: planningView,
   salud: healthView, gimnasio: gymView, nutricion: nutritionView,
-  mazos: studyView, ingles: inglesView, informacion: infoView,
+  mazos: studyView, ingles: englishView, informacion: infoView,
   finanzas: financeView, compras: shoppingView, peliculas: mediaView,
   sistema: (data, ui) => systemView(ui),
 };
 
 /** Etiquetas cortas para los segmentos (los nombres completos siguen en la barra lateral y en «Ir a»). */
-const SHORT_LABELS = { tareas: 'Tareas', mazos: 'Mazos', informacion: 'Información' };
+const SHORT_LABELS = { tareas: 'Tareas', mazos: 'Mazos', informacion: 'Información', plan: 'Plan' };
 
 /** Barra de sub-módulos del área actual (segmentos en mobile y desktop). */
 export function areaNav(tab) {

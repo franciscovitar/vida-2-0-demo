@@ -267,7 +267,7 @@ const logic = await import('./logic.js');
 test('la navegación por áreas agrupa los 11 módulos y muestra los segmentos del área', () => {
   ui.click({ action: 'reset' });
   const groups = Object.values(logic.AREAS).map((area) => area.tabs);
-  assert.deepEqual(groups.flat().sort(), ['agenda', 'compras', 'finanzas', 'gimnasio', 'informacion', 'ingles', 'mazos', 'nutricion', 'peliculas', 'proyectos', 'salud', 'tareas']);
+  assert.deepEqual(groups.flat().sort(), ['agenda', 'compras', 'finanzas', 'gimnasio', 'informacion', 'ingles', 'mazos', 'nutricion', 'peliculas', 'plan', 'proyectos', 'salud', 'tareas']);
   ui.click({ tab: 'gimnasio' });
   assert.match(ui.panel.innerHTML, /class="subnav a-care" aria-label="Cuidarme"/);
   assert.match(ui.panel.innerHTML, /data-tab="gimnasio" aria-current="page"/);
@@ -635,4 +635,62 @@ test('centro de información: piezas de ejemplo con procedencia, feedback canón
   app.__test.undo();
   ui.click({ automationRun: 'daily-briefing' });
   assert.match(ui.panel.innerHTML, /Ejecución manual simulada/);
+});
+
+/* ───────── Etapa 5A: Plan y logros, Inglés ───────── */
+
+test('plan: «En qué quedé» marca frentes desactualizados y registrar avance los pone al día', () => {
+  ui.click({ action: 'reset' });
+  ui.click({ tab: 'plan' });
+  assert.match(ui.panel.innerHTML, /2 de 4 frentes necesitan atención/);
+  assert.match(ui.panel.innerHTML, /Sitio Boreal[\s\S]*?Bloqueado y sin avances/);
+  ui.click({ continuityEdit: 'c-ruta' });
+  app.__test.submit('continuity', { nextAction: 'x', blocker: '' }, { item: 'c-ruta' });
+  assert.match(ui.panel.innerHTML, /Describí el próximo paso/);
+  app.__test.submit('continuity', { nextAction: 'Hacer el ejercicio de genéricos', blocker: '' }, { item: 'c-ruta' });
+  assert.match(ui.panel.innerHTML, /1 de 4 frentes necesitan atención/);
+  assert.match(ui.panel.innerHTML, /Hacer el ejercicio de genéricos/);
+});
+
+test('plan: hitos, revisión semanal compuesta desde los módulos y logros validados', () => {
+  ui.click({ action: 'reset' });
+  ui.click({ tab: 'plan' });
+  ui.click({ planTab: 'goals' });
+  assert.match(ui.panel.innerHTML, /Lanzar Producto Aurora[\s\S]*?2<small>\/4/);
+  ui.change('g-aurora:m3', 'milestoneCheck', true);
+  assert.match(ui.panel.innerHTML, /Lanzar Producto Aurora[\s\S]*?3<small>\/4/);
+  ui.click({ planTab: 'review' });
+  assert.match(ui.panel.innerHTML, /Sesiones de gimnasio<\/dt><dd class="mono">2\/3/);
+  app.__test.submit('review', { wentWell: 'ok', adjust: '', focus: '' });
+  assert.match(ui.panel.innerHTML, /Escribí al menos unas palabras/);
+  app.__test.submit('review', { wentWell: 'Cerré la demo', adjust: 'Dormir antes', focus: 'Lanzamiento' });
+  assert.match(ui.panel.innerHTML, /Semana 16–22 nov/);
+  assert.match(ui.panel.innerHTML, /Tareas cerradas: 1\/4/);
+  ui.click({ planTab: 'achievements' });
+  app.__test.submit('achievement', { title: 'Demo lista', category: 'PROJECT', date: '2026-02-30' });
+  assert.match(ui.panel.innerHTML, /Fecha inválida/);
+  app.__test.submit('achievement', { title: 'Demo lista', category: 'PROJECT', date: '2026-11-17' });
+  assert.match(ui.panel.innerHTML, /Demo lista[\s\S]*?Autoinformado/);
+});
+
+test('inglés: un error recurrente se convierte en tarjeta del mazo, sin duplicarse', () => {
+  ui.click({ action: 'reset' });
+  ui.click({ tab: 'ingles' });
+  ui.click({ englishAnswer: 'for' });
+  assert.match(ui.panel.innerHTML, /patrón recurrente de tu perfil: <strong>«since» vs «for»/);
+  ui.click({ englishCard: 'w-since' });
+  assert.match(ui.panel.innerHTML, /Ya está en el mazo/);
+  assert.equal(app.__test.data.decks.find((d) => d.id === 'english').cards.length, 4);
+  ui.click({ englishTab: 'profile' });
+  assert.match(ui.panel.innerHTML, /B1 \(provisional\)/);
+  assert.match(ui.panel.innerHTML, /Pronunciación[\s\S]*?Sin evidencia suficiente/);
+  ui.click({ englishCard: 'w-third' });
+  ui.click({ tab: 'mazos' });
+  ui.click({ deck: 'english' });
+  assert.match(ui.panel.innerHTML, /Idiomas · 5 tarjetas/);
+  ui.click({ tab: 'ingles' });
+  ui.click({ englishTab: 'sessions' });
+  app.__test.submit('english-session', { type: 'conversation', minutes: '30', focus: 'Pitch del producto' });
+  assert.match(ui.panel.innerHTML, /Pitch del producto/);
+  assert.match(ui.panel.innerHTML, /Sesiones en noviembre<\/dt><dd class="mono">6/);
 });

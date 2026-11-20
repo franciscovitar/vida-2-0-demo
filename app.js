@@ -2,7 +2,8 @@ import { initialData } from './data.js';
 import { icon } from './icons.js';
 import { LABELS, areaOfTab, parseExercise } from './logic.js';
 import { moduleView } from './modules.js';
-import { addEpisode, addRestockToList, applyIntent, editSet, rateSeason, recordCorrection, recordPurchase, togglePlannedSet, validateIntent } from './src/domain/actions.js';
+import { validateAchievement, validateReview, weekSnapshot } from './src/domain/planning.js';
+import { addAchievement, addEnglishCard, addEnglishSession, addEpisode, addRestockToList, addReview, toggleMilestone, updateContinuity, applyIntent, editSet, rateSeason, recordCorrection, recordPurchase, togglePlannedSet, validateIntent } from './src/domain/actions.js';
 import { checkAnswer, schedule } from './src/domain/study.js';
 import { CAPTURE_EXAMPLES, parseCapture } from './src/domain/capture.js';
 import { captureDialog } from './src/views/capture.js';
@@ -24,6 +25,7 @@ const initialUi = Object.freeze({
   englishIndex: 0, englishAnswer: '', englishPracticed: false,
   financeCategory: 'home', financeMode: 'left', financeTab: 'budget', purchase: null, movementFilter: 'all',
   infoTab: 'readings', infoFront: 'all', infoOpen: '',
+  planTab: 'continuity', continuityEdit: '', englishTab: 'practice', reviewDraft: null,
   shoppingTab: 'list', mediaTab: 'films', seriesFilter: 'all', moviesFilter: 'Todas', answerResult: null,
   systemMode: 'real',
 });
@@ -281,6 +283,36 @@ const submitHandlers = {
     render();
     announce(result ? (result.correct ? 'Respuesta correcta' : 'La respuesta no coincide') : 'Falta la respuesta');
   },
+  continuity(form, values) {
+    const id = form.dataset.item;
+    const probe = structuredClone(data);
+    const check = updateContinuity(probe, id, values);
+    ui.formErrors[`cont-${id}`] = check.ok ? undefined : check.errors;
+    if (!check.ok) { render(); return; }
+    ui.continuityEdit = '';
+    commit('Avance registrado: el frente quedó al día', (draft) => { updateContinuity(draft, id, values); });
+  },
+  review(form, values) {
+    const check = validateReview(values);
+    ui.reviewDraft = values;
+    ui.formErrors.review = check.ok ? undefined : check.errors;
+    if (!check.ok) { render(); announce('Completá las tres preguntas de la revisión.'); return; }
+    ui.reviewDraft = null;
+    commit('Revisión semanal guardada', (draft) => { addReview(draft, values, weekSnapshot(draft)); });
+  },
+  achievement(form, values) {
+    const check = validateAchievement(values);
+    ui.formErrors.achievement = check.ok ? undefined : check.errors;
+    if (!check.ok) { render(); return; }
+    commit('Logro guardado', (draft) => { addAchievement(draft, values); });
+  },
+  'english-session'(form, values) {
+    const probe = structuredClone(data);
+    const check = addEnglishSession(probe, values);
+    ui.formErrors.englishSession = check.ok ? undefined : check.errors;
+    if (!check.ok) { render(); return; }
+    commit('Sesión de inglés registrada', (draft) => { addEnglishSession(draft, values); });
+  },
   parse(form, values) {
     ui.capture.text = String(values.text ?? '');
     ui.capture.errors = {};
@@ -363,6 +395,10 @@ const clickHandlers = {
   restockCorrect: (value) => { const [id, type] = value.split(':'); commit('Corrección registrada: la reposición se recalculó', (draft) => { recordCorrection(draft, id, type); }); },
   restockBought: (value) => commit('Compra registrada: la reposición se recalculó', (draft) => { recordPurchase(draft, value); }),
   mediaTab: (value) => { ui.mediaTab = value; render(); },
+  planTab: (value) => { ui.planTab = value; ui.continuityEdit = ''; render(); },
+  continuityEdit: (value) => { ui.continuityEdit = value; render(); if (value) panel.querySelector?.(`[data-item="${value}"] input`)?.focus(); },
+  englishTab: (value) => { ui.englishTab = value; render(); },
+  englishCard: (value) => commit('Tarjeta creada en el mazo «Inglés cotidiano»', (draft) => (addEnglishCard(draft, value) ? undefined : false)),
   infoTab: (value) => { ui.infoTab = value; render(); },
   infoFront: (value) => { ui.infoFront = value; render(); },
   infoOpen: (value) => { ui.infoOpen = value; render(); },
@@ -484,7 +520,14 @@ document.addEventListener('change', (event) => {
     return;
   }
   if (!(target instanceof HTMLInputElement)) return;
-  const { habitCheck, taskCheck, shoppingCheck } = target.dataset;
+  const { habitCheck, taskCheck, shoppingCheck, milestoneCheck } = target.dataset;
+  if (milestoneCheck) {
+    const [goalId, milestoneId] = milestoneCheck.split(':');
+    toggleMilestone(data, goalId, milestoneId, target.checked);
+    render();
+    announce(target.checked ? 'Hito cumplido' : 'Hito pendiente');
+    return;
+  }
   if (habitCheck) {
     const habit = data.habits.find((h) => h.id === habitCheck);
     if (habit) { habit.done = target.checked; render(); announce(`${habit.label}: ${habit.done ? 'completado' : 'pendiente'}`); }

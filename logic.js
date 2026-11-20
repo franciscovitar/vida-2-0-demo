@@ -4,7 +4,7 @@
  */
 
 export const AREAS = Object.freeze({
-  org: { key: 'org', name: 'Organizar', tabs: ['tareas', 'proyectos', 'agenda'] },
+  org: { key: 'org', name: 'Organizar', tabs: ['tareas', 'proyectos', 'agenda', 'plan'] },
   care: { key: 'care', name: 'Cuidarme', tabs: ['salud', 'gimnasio', 'nutricion'] },
   learn: { key: 'learn', name: 'Aprender', tabs: ['mazos', 'ingles', 'informacion'] },
   life: { key: 'life', name: 'Vivir', tabs: ['finanzas', 'compras', 'peliculas'] },
@@ -17,6 +17,7 @@ export const LABELS = Object.freeze({
   mazos: 'Mazos de estudio', ingles: 'Inglés',
   finanzas: 'Finanzas', compras: 'Compras', peliculas: 'Películas',
   informacion: 'Centro de información',
+  plan: 'Plan y logros',
   sistema: 'Cómo funciona',
 });
 

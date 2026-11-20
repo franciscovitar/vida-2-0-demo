@@ -157,6 +157,54 @@ export function rateSeason(data, seriesId, n, rating) {
   return true;
 }
 
+/* ───────── Organizar e Inglés ───────── */
+
+export function updateContinuity(data, id, values) {
+  const item = data.planning.continuity.find((c) => c.id === id);
+  const next = String(values.nextAction ?? '').trim();
+  if (!item) return { ok: false, errors: { nextAction: 'El frente ya no existe.' } };
+  if (next.length < 3 || next.length > 120) return { ok: false, errors: { nextAction: 'Describí el próximo paso (3 a 120 caracteres).' } };
+  item.nextAction = next;
+  item.blocker = String(values.blocker ?? '').trim().slice(0, 120) || null;
+  item.lastProgress = data.today;
+  return { ok: true, errors: {} };
+}
+
+export function toggleMilestone(data, goalId, milestoneId, done) {
+  const milestone = data.planning.goals.find((g) => g.id === goalId)?.milestones.find((m) => m.id === milestoneId);
+  if (!milestone) return false;
+  milestone.done = Boolean(done);
+  return true;
+}
+
+export function addReview(data, values, snapshot) {
+  data.planning.reviews.unshift({ id: nextId(data, 'review'), week: '16–22 nov', closedAt: data.today, wentWell: values.wentWell.trim(), adjust: values.adjust.trim(), focus: values.focus.trim(), snapshot: snapshot.map(({ label, value }) => ({ label, value })) });
+}
+
+export function addAchievement(data, values) {
+  data.planning.achievements.push({ id: nextId(data, 'ach'), title: values.title.trim(), category: values.category, assertion: 'SELF_REPORTED', date: values.date || null });
+}
+
+export function addEnglishSession(data, values) {
+  const minutes = Number(values.minutes);
+  const focus = String(values.focus ?? '').trim();
+  const errors = {};
+  if (!Number.isInteger(minutes) || minutes < 5 || minutes > 180) errors.minutes = 'Entre 5 y 180 minutos.';
+  if (focus.length < 3 || focus.length > 80) errors.focus = 'Contá en pocas palabras qué practicaste.';
+  if (Object.keys(errors).length) return { ok: false, errors };
+  data.english.lab.sessions.push({ id: nextId(data, 'eng'), date: data.today, type: values.type, minutes, focus });
+  return { ok: true, errors };
+}
+
+/** Convierte un patrón de error recurrente en una tarjeta del mazo de inglés (sin duplicarla). */
+export function addEnglishCard(data, weaknessId) {
+  const weakness = data.english.lab.weaknesses.find((w) => w.id === weaknessId);
+  const deck = data.decks.find((d) => d.id === 'english');
+  if (!weakness || deck.cards.some((c) => c.front === weakness.card.front)) return false;
+  deck.cards.push({ ...weakness.card });
+  return true;
+}
+
 /** Marca o desmarca una serie planificada (`press-1`) con la carga y repeticiones del plan. */
 export function togglePlannedSet(data, key, plan) {
   const index = data.gym.today.findIndex((s) => s.id === key);
