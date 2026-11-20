@@ -91,7 +91,7 @@ Estados: **Impl.** = implementado y en rutas activas · **Flag** = implementado 
 | 3 | Flujo vertical: Gimnasio + Nutrición + captura global (formulario y conversacional) | ✅ (ver §6) |
 | 4 | Ampliación: Finanzas (gasto, Safe-to-Spend), Compras (reposición), Estudio (calificación), Salud (scores), Media (series) | ✅ (checkpoint 2) |
 | 5 | "Cómo funciona Vida 2.0": arquitectura real vs demo | ✅ primera versión |
-| 6 | QA integral y Preview | ✅ para esta etapa |
+| 6 | QA integral, accesibilidad y Preview | En validación final (ver checkpoint 5) |
 
 ## 6. Registro de avance
 
@@ -162,3 +162,21 @@ Investigado en el original antes de implementar: `lib/finance/safe-to-spend.ts` 
 - **TypeScript/checkJs:** evaluado, no se introdujo una dependencia de compilación para una demo estática sin build. El análisis formal de tipos queda como posible evolución, no como puerta de publicación de esta etapa.
 
 **Próxima acción:** verificar el deployment Preview exclusivo de esta rama, con navegación desktop/mobile, CSP y solicitudes de red. No tocar Production, `main` ni la aplicación Vida original sin autorización separada.
+
+### Checkpoint 5 — 2026-11-20 · auditoría de publicación (rama de desarrollo)
+
+**Evidencia observada sobre el Preview anterior al checkpoint:**
+
+- Chrome conectado: las 15 vistas (Hoy + 14 secciones seleccionables) abren en móvil a 390 px; sin errores registrados en la consola de las rutas probadas.
+- Muestra responsive: 390, 820 y 1440 px; sin overflow horizontal en inicio y las secciones profundas inspeccionadas. Los flujos de Nutrición (micronutrientes 7D), Gimnasio (benchmark y rutina), Finanzas (conciliación/deshacer) funcionaron en el Preview.
+- Captura: diálogo nativo abierto con foco en el primer campo; Escape lo cerró devolviendo el foco al botón. Agregar una serie recalculó e1RM y detectó nuevo récord.
+- Auditoría básica de etiquetas: cada una de las 15 vistas tiene un `h1`; no se detectaron controles sin nombre en el contenido ni IDs repetidos en las vistas inspeccionadas. Se identificó que el selector del encabezado quedaba sin nombre en móvil por una regla CSS que oculta su etiqueta visible.
+- `curl -I` contra el Preview: HTTP 200 y CSP con `connect-src 'none'`, `script-src 'self'`, `style-src 'self'`; HSTS, `nosniff` y `noindex` presentes. No equivale a una auditoría de seguridad completa.
+
+**Correcciones de este checkpoint:**
+
+- Nombre accesible explícito en selector móvil (`aria-label`), con test de regresión.
+- Restauración del foco en el botón de envío después de agregar una serie o alimento y redibujar la vista, para conservar el recorrido de teclado.
+- Extensión de `qa/browser_e2e.py` para cubrir ambas capturas reales, su foco, las quince vistas y el reinicio; actualización del README para que describa las capacidades existentes, sin referencias antiguas al showcase reducido.
+
+**Límites aún visibles:** Chromium local no puede iniciar por `socket() Operation not permitted`, por lo que el script E2E de Python no se declaró ejecutado. Las correcciones nuevas requieren confirmación en el Preview del siguiente commit. Quedan para publicación definitiva: pruebas E2E automatizadas en un runner compatible, inspección de performance/a11y completa y enlace de retorno al portfolio cuando se conozca su URL canónica. No modificar `main` sin aprobación.

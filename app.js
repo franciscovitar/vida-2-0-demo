@@ -100,7 +100,20 @@ function focusKey(root) {
   const active = document.activeElement;
   if (!active || !root?.contains?.(active)) return null;
   const attribute = [...active.attributes].find((a) => (a.name.startsWith('data-') && a.name !== 'data-vars') || a.name === 'name');
-  return attribute ? `[${attribute.name}="${CSS.escape(attribute.value)}"]` : null;
+  if (attribute) return `[${attribute.name}="${CSS.escape(attribute.value)}"]`;
+  // Los botones de envío no tienen un data-* propio: conservar el foco en el
+  // formulario re-renderizado permite registrar varias series/comidas con teclado.
+  if (active.matches?.('button[type="submit"]')) {
+    const form = active.closest?.('form[data-capture-form]');
+    if (form) {
+      const attributes = ['captureForm', 'exercise', 'set', 'item', 'card']
+        .filter((name) => form.dataset[name] !== undefined)
+        .map((name) => `[data-${name.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`)}="${CSS.escape(form.dataset[name])}"]`)
+        .join('');
+      return `form${attributes} button[type="submit"]`;
+    }
+  }
+  return null;
 }
 
 function render() {

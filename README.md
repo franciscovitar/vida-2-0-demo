@@ -10,12 +10,12 @@ Demo estática e independiente para visitantes del portfolio de Francisco Vitar.
 
 | Área | Vistas de la demo | Lo que puede probar el visitante |
 | --- | --- | --- |
-| Organización | Mi día, Proyectos, Agenda | Completar tareas y hábitos; filtrar proyectos; cambiar días y ver eventos |
+| Organización | Mi día, Tareas y hábitos, Proyectos, Agenda, Plan y logros | Completar tareas, registrar avances, revisar hitos, filtrar proyectos y explorar eventos |
 | Bienestar | Salud, Gimnasio, Nutrición | Registrar series, explorar progreso y benchmark ilustrativo, ver micronutrientes por cobertura y cambiar diario de comidas |
-| Aprendizaje | Mazos de estudio, Inglés | Calificar tarjetas, contestar preguntas, consultar el perfil de práctica y registrar sesiones |
+| Aprendizaje | Mazos de estudio, Inglés, Centro de información | Calificar tarjetas, contestar preguntas, registrar sesiones y explorar ejemplos de lecturas, radar y automatizaciones |
 | Vida cotidiana | Finanzas, Compras, Películas | Simular capacidad de gasto, conciliar un extracto inventado, revisar reposición y llevar películas/series |
 
-La demo **no implementa** la categoría World ni el área Profesional. En la home se menciona que la aplicación original incluye seguimiento de herramientas, tecnologías y actualidad, sin mostrar noticias o sincronizaciones en vivo. Los mazos son un ejemplo de repaso manual, no una integración con Anki ni un planificador de repetición espaciada.
+El **Centro de información** representa algunas capacidades de World, Inteligencia y automatizaciones con contenidos **ficticios y atemporales**: no presenta noticias, integraciones ni sincronizaciones reales. No replica el área Profesional personal. Los mazos usan un programador de repaso determinista y simplificado; **no** son una integración con Anki ni una implementación del FSRS del sistema original.
 
 Las acciones se pierden al recargar o presionar **Reiniciar demo**. Las gráficas, importes en ARS, métricas de salud, calorías, ejercicios, puntuaciones y supuestas rachas son ilustrativos. El contenido de nutrición, gimnasio, salud y finanzas no es asesoramiento profesional. Los nombres de películas y sus carteles gráficos son inventados.
 
@@ -36,7 +36,9 @@ La interfaz implementa la dirección A aprobada en Claude Design (brief original
 | --- | --- |
 | `data.js` | Datos ficticios (incluye la hora y el día fijos de la demo y las etiquetas de las series). |
 | `logic.js` | Cálculos puros: progreso por área, deltas de salud, ritmo de presupuesto, macros, series del gimnasio. |
-| `modules.js` | Plantillas de las 12 vistas (sin acceso al DOM). |
+| `modules.js`, `src/views/` | Plantillas de las vistas (sin acceso al DOM). |
+| `src/domain/` | Validaciones y cálculos puros de captura, salud, gimnasio, nutrición, finanzas y otros dominios. |
+| `src/data/synthetic.js` | Datos sintéticos complementarios para los recorridos funcionales. |
 | `icons.js` | Iconografía propia (trazo 1.75). |
 | `app.js` | Estado en memoria, eventos, foco y anuncios accesibles. |
 | `styles.css` | Sistema visual: tokens, componentes y responsive. |
@@ -69,7 +71,7 @@ Pruebas (Node.js 22 o superior, sin instalar dependencias):
 npm test
 ```
 
-El recorrido opcional en un navegador real está en `qa/browser_e2e.py`: requiere Python Playwright y Chromium instalados en el entorno de QA, sin convertirse en dependencias del sitio. Probá `python3 qa/browser_e2e.py` donde Chromium pueda iniciarse. El estado de esta verificación figura en [el roadmap](./docs/SHOWCASE_ROADMAP.md).
+El recorrido automatizado de navegador está en `qa/browser_e2e.py`: requiere Python Playwright y Chromium instalados en un entorno que permita ejecutar el navegador. Probá `python3 qa/browser_e2e.py` donde Chromium pueda iniciarse. Su ejecución local sigue condicionada por permisos del entorno; las verificaciones manuales del Preview figuran en [el roadmap](./docs/SHOWCASE_ROADMAP.md).
 
 ## Publicación en Vercel
 
@@ -79,7 +81,7 @@ También puede hospedarse en cualquier hosting estático que permita agregar las
 
 ## QA requerida antes de compartirla
 
-1. Validar la navegación y las acciones de estado en los once paneles, incluyendo reinicio y selector de módulo en mobile.
+1. Validar las quince vistas navegables (Hoy, trece módulos de área y Cómo funciona), acciones de estado, reinicio y selector móvil.
 2. Abrir sin iniciar sesión en desktop y mobile; no debe existir scroll horizontal.
 3. Comprobar que no haya solicitudes de red más allá de `index.html`, `styles.css`, `app.js`, `modules.js`, `data.js` y recursos de la plataforma.
 4. Verificar el encabezado CSP en la respuesta desplegada.

@@ -7,6 +7,11 @@ import { initialData } from './data.js';
 
 const root = new URL('./', import.meta.url);
 
+test('el selector de módulos conserva su nombre accesible cuando el texto visual se oculta en móvil', async () => {
+  const html = await readFile(new URL('./index.html', import.meta.url), 'utf8');
+  assert.match(html, /<select\s+id="mobile-nav"\s+aria-label="Ir a un módulo"/);
+});
+
 function mockDom() {
   const listeners = new Map();
   const panel = { innerHTML: '' };

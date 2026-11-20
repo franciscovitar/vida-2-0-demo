@@ -33,6 +33,7 @@ class PreviewHandler(SimpleHTTPRequestHandler):
 def check(page, url, width, errors, requests):
     page.goto(url, wait_until="load")
     assert "Buen día, Alex" in page.locator("#panel").inner_text()
+    assert page.locator("#mobile-nav").get_attribute("aria-label") == "Ir a un módulo"
     assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1"), f"overflow al abrir ({width}px)"
 
     page.locator("#mobile-nav").select_option("nutricion")
@@ -40,8 +41,21 @@ def check(page, url, width, errors, requests):
     assert "Micronutrientes" in page.locator("#panel").inner_text()
     page.locator('[data-nutrition-window="7"]').click()
     assert "Sin evidencia" in page.locator("#panel").inner_text()
+    page.locator('[data-nutrition-tab="hoy"]').click()
+    food = page.locator('[data-capture-form="food"]')
+    food.locator('input[name="amount"]').fill("2")
+    food.locator('button[type="submit"]').click()
+    assert "Alimento agregado" in page.locator("#announcement").inner_text()
+    assert page.evaluate('document.activeElement?.closest("form")?.dataset.captureForm') == "food"
 
     page.locator("#mobile-nav").select_option("gimnasio")
+    workout = page.locator('[data-capture-form="set"][data-exercise="press"]')
+    workout.locator('input[name="kg"]').fill("42.5")
+    workout.locator('input[name="reps"]').fill("8")
+    workout.locator('button[type="submit"]').click()
+    assert "Serie agregada" in page.locator("#announcement").inner_text()
+    assert "42,5 kg" in page.locator('[aria-labelledby="ex-press"]').inner_text()
+    assert page.evaluate('document.activeElement?.closest("form")?.dataset.exercise') == "press"
     page.locator('[data-gym-tab="progreso"]').click()
     assert "Referencia de fuerza" in page.locator("#panel").inner_text()
     page.locator('[data-gym-tab="rutina"]').click()
@@ -54,6 +68,11 @@ def check(page, url, width, errors, requests):
     page.locator('[data-action="undo"]').last.click()
     assert "Confirmar 4 movimientos" in page.locator("#panel").inner_text()
     assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1"), f"overflow en importador ({width}px)"
+
+    for section in ("tareas", "proyectos", "agenda", "plan", "salud", "mazos", "ingles", "informacion", "compras", "peliculas", "sistema"):
+        page.locator("#mobile-nav").select_option(section)
+        assert page.locator("#panel h1").count() == 1, f"encabezado faltante: {section}"
+        assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1"), f"overflow en {section} ({width}px)"
 
     page.reload(wait_until="load")
     page.locator("#mobile-nav").select_option("finanzas")
