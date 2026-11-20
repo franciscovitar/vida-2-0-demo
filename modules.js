@@ -3,9 +3,13 @@
  * la aplicación personal y nunca lee red, almacenamiento ni el navegador.
  */
 import { icon } from './icons.js';
+import { esc, note, pageHead, pct, ring, segments, vars } from './src/views/ui.js';
+import { gymView } from './src/views/gym.js';
+import { nutritionView } from './src/views/nutrition.js';
+import { systemView } from './src/views/system.js';
 import {
-  AREAS, LABELS, areaOfTab, areaProgress, average, dayNutrition, eventStatus, financeSummary,
-  formatDecimal, formatMoney, formatNumber, gymSummary, habitArea, healthDeltas, parseExercise,
+  AREAS, LABELS, areaOfTab, areaProgress, average, eventStatus, financeSummary,
+  formatDecimal, formatMoney, formatNumber, habitArea, healthDeltas,
   signed, taskArea, toMinutes,
 } from './logic.js';
 
@@ -17,32 +21,9 @@ const AGENDA_DAYS = [
 ];
 const COLOR_AREA = { violet: 'org', blue: 'org', green: 'care', amber: 'learn' };
 
-/** Valores dinámicos: se aplican como variables CSS desde app.js (compatible con la CSP). */
-const vars = (entries) => `data-vars="${Object.entries(entries).map(([k, v]) => `--${k}:${v}`).join(';')}"`;
-const pct = (value) => `${Math.max(0, Math.min(100, Math.round(value)))}%`;
-
-function pageHead(kicker, title, lead = '') {
-  return `<header class="page-head"><p class="kicker">${kicker}</p><h1 tabindex="-1">${title}</h1>${lead ? `<p class="lead">${lead}</p>` : ''}</header>`;
-}
-
-function note(text) {
-  return `<p class="note">${icon('info', 16)}<span>${text}</span></p>`;
-}
-
-function segments(done, total, area) {
-  return `<span class="segments a-${area}" aria-hidden="true">${Array.from({ length: total }, (_, i) => `<span class="${i < done ? 'on' : ''}"></span>`).join('')}</span>`;
-}
-
-function ring(done, total, size = 60, stroke = 7, label = '') {
-  const r = (size - stroke) / 2;
-  const c = 2 * Math.PI * r;
-  const filled = total ? (c * done) / total : 0;
-  return `<span class="ring"><svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" role="img" aria-label="${label}"><circle class="ring-track" cx="${size / 2}" cy="${size / 2}" r="${r}" stroke-width="${stroke}"/><circle class="ring-fill" cx="${size / 2}" cy="${size / 2}" r="${r}" stroke-width="${stroke}" stroke-dasharray="${filled.toFixed(1)} ${c.toFixed(1)}" transform="rotate(-90 ${size / 2} ${size / 2})"/></svg><span class="ring-label mono">${done}/${total}</span></span>`;
-}
-
 function taskRow(task) {
   const area = taskArea(task);
-  return `<li><label class="check-row ${task.done ? 'is-done' : ''}"><input class="check-input" type="checkbox" data-task-check="${task.id}" ${task.done ? 'checked' : ''}/><span class="check-box" aria-hidden="true">${icon('check', 14)}</span><span class="check-text"><span class="check-label">${task.label}</span><span class="check-meta">${task.project} · ${task.category}</span></span><span class="check-tags"><span class="tag a-${area}">${AREAS[area].name}</span><span class="tag ${task.priority === 'Alta' ? 'tag-high' : ''}">${task.priority}</span></span></label></li>`;
+  return `<li><label class="check-row ${task.done ? 'is-done' : ''}"><input class="check-input" type="checkbox" data-task-check="${task.id}" ${task.done ? 'checked' : ''}/><span class="check-box" aria-hidden="true">${icon('check', 14)}</span><span class="check-text"><span class="check-label">${esc(task.label)}</span><span class="check-meta">${esc(task.project)} · ${esc(task.category)}</span></span><span class="check-tags"><span class="tag a-${area}">${AREAS[area].name}</span><span class="tag ${task.priority === 'Alta' ? 'tag-high' : ''}">${task.priority}</span></span></label></li>`;
 }
 
 function habitChip(habit) {
@@ -55,7 +36,7 @@ function habitChip(habit) {
 const TOUR = [
   'Marcá una tarea del foco: el anillo y tus áreas se actualizan al instante.',
   'Bajá a «Tu día en cuatro áreas»: cada hábito suma al área a la que pertenece.',
-  'Abrí un área para explorar Salud, Finanzas o Aprender. Todo es interactivo y se reinicia cuando quieras.',
+  'Probá «Registrar»: contá un entrenamiento o una comida y mirá cómo cambian Gimnasio, Nutrición y tus áreas.',
 ];
 
 function hoyView(data, ui) {
@@ -72,6 +53,10 @@ function hoyView(data, ui) {
   return `
     ${ui.tourOpen ? `<section class="tour" aria-label="Recorrido de la demo"><span class="kicker">Recorrido · ${ui.tourStep + 1} de 3</span><p>${TOUR[ui.tourStep]}</p><div class="tour-actions"><button type="button" class="btn btn-light" data-tour="next">${ui.tourStep === 2 ? 'Listo' : 'Siguiente'}</button><button type="button" class="icon-btn icon-btn-dark" data-tour="close" aria-label="Cerrar recorrido">${icon('close', 16)}</button></div></section>` : ''}
     ${pageHead(`${data.dateLabel.replace(/^(\w+), /u, '$1 ').replace(/ DE 2026$/, '')} · ${data.demoClock.time}`, `Buen día, ${data.persona}.`, headline)}
+    <div class="cta-row">
+      <button type="button" class="card cta-card is-primary" data-open-capture="" aria-haspopup="dialog"><span class="cta-icon" aria-hidden="true">${icon('plus', 20)}</span><span><strong>Registrar algo</strong><small>Contalo como lo dirías: «press de pecho, 3 series de 10 con 35 kilos»</small></span></button>
+      <button type="button" class="card cta-card" data-tab="sistema"><span class="cta-icon is-soft" aria-hidden="true">${icon('code', 20)}</span><span><strong>Cómo funciona Vida 2.0</strong><small>De una conversación con ChatGPT a la fuente de verdad</small></span></button>
+    </div>
     <div class="today-grid">
       <section class="card focus a-org" aria-labelledby="focus-title">
         <div class="focus-head"><div><p class="eyebrow">Foco de hoy</p><h2 id="focus-title">${data.focus}</h2></div>${ring(tasksDone, data.tasks.length, 60, 7, `${tasksDone} de ${data.tasks.length} tareas completadas`)}</div>
@@ -221,63 +206,6 @@ function saludView(data, ui) {
     ${note('Valores inventados para mostrar la interfaz. No son recomendaciones ni interpretaciones médicas.')}`;
 }
 
-function gimnasioView(data, ui) {
-  const summary = gymSummary(data, ui.gymSets);
-  const max = Math.max(...data.gym.volume);
-  return `${pageHead('Sesión de hoy', 'Progresá a tu ritmo.', `${data.gym.exercises.length} ejercicios · ${summary.total} series. Marcá cada serie a medida que la terminás.`)}
-    <div class="gym-top card">
-      <div><p class="eyebrow">Esta semana</p><p class="big mono">${summary.sessions}/${summary.goal}<small> sesiones</small></p></div>
-      ${segments(summary.sessions, summary.goal, 'care')}
-      <button type="button" class="btn ${data.gym.completed ? 'btn-ghost' : 'btn-dark'}" data-gym-toggle>${data.gym.completed ? `${icon('reset', 16)} Marcar como pendiente` : `${icon('check', 16)} Terminar sesión`}</button>
-    </div>
-    ${data.gym.completed ? `<p class="banner a-care" role="status"><strong>${summary.sessions >= summary.goal ? 'Meta semanal cumplida.' : 'Sesión guardada.'}</strong> ${summary.done} de ${summary.total} series · ${formatNumber(summary.lifted)} kg levantados (peso × repeticiones).</p>` : ''}
-    <div class="exercise-grid">${data.gym.exercises.map((exercise) => {
-      const p = parseExercise(exercise);
-      return `<section class="card exercise" aria-labelledby="ex-${exercise.id}">
-        <div class="card-head"><h2 id="ex-${exercise.id}">${exercise.name}</h2><span class="tag a-care">${exercise.muscle}</span></div>
-        <div class="set-head kicker" aria-hidden="true"><span>Serie</span><span>Peso</span><span>Reps</span><span></span></div>
-        <ul class="sets">${Array.from({ length: p.sets }, (_, i) => {
-          const key = `${exercise.id}-${i + 1}`;
-          const done = Boolean(ui.gymSets[key]);
-          return `<li class="set ${done ? 'is-done' : ''}"><span class="mono">${i + 1}</span>${p.kg ? `<span class="mono">${exercise.weight}</span>` : '<span>Corporal</span>'}<span class="mono">${p.reps}</span><button type="button" class="set-btn" data-gym-set="${key}" aria-pressed="${done}" aria-label="Serie ${i + 1} de ${exercise.name}">${icon('check', 16)}</button></li>`;
-        }).join('')}</ul>
-      </section>`;
-    }).join('')}
-    </div>
-    <section class="card" aria-labelledby="volume-title">
-      <div class="card-head"><h2 id="volume-title">Volumen · últimas 6 semanas</h2><span class="muted mono">${data.gym.volume[0]} → ${data.gym.volume.at(-1)} (índice)</span></div>
-      <div class="mini-bars a-care" role="img" aria-label="Índice de volumen de ${data.gym.volume[0]} a ${data.gym.volume.at(-1)} en seis semanas">${data.gym.volume.map((v, i) => `<span class="${i === data.gym.volume.length - 1 ? 'is-today' : ''}" ${vars({ h: pct((v / max) * 100) })}></span>`).join('')}</div>
-    </section>
-    ${note('Rutina y pesos ficticios. No son una prescripción de entrenamiento.')}`;
-}
-
-function nutricionView(data, ui) {
-  const day = data.nutrition.days[ui.nutritionDay];
-  const n = dayNutrition(day);
-  const target = data.nutrition.targetCalories;
-  const r = 54;
-  const c = 2 * Math.PI * r;
-  const left = target - n.calories;
-  const macros = [['Proteínas', n.protein, n.shares.protein, 'm1'], ['Carbohidratos', n.carbs, n.shares.carbs, 'm2'], ['Grasas', n.fats, n.shares.fats, 'm3']];
-  return `${pageHead('Diario de comidas', 'Comer con más claridad.', 'Un diario sencillo: comidas por momento del día y cómo se reparten las calorías.')}
-    <div class="chips" role="group" aria-label="Elegir día">${data.nutrition.days.map((d, i) => `<button type="button" class="chip-btn" data-nutrition-day="${i}" aria-pressed="${ui.nutritionDay === i}">${d.label}</button>`).join('')}</div>
-    <div class="split">
-      <section class="card nutrition-summary a-care" aria-label="Resumen del día">
-        <span class="kcal-ring"><svg width="132" height="132" viewBox="0 0 132 132" role="img" aria-label="${formatNumber(n.calories)} de ${formatNumber(target)} kcal"><circle class="ring-track" cx="66" cy="66" r="${r}" stroke-width="12"/><circle class="ring-fill" cx="66" cy="66" r="${r}" stroke-width="12" stroke-dasharray="${(c * Math.min(1, n.calories / target)).toFixed(1)} ${c.toFixed(1)}" transform="rotate(-90 66 66)"/></svg><span><strong class="mono">${formatNumber(n.calories)}</strong><small>de ${formatNumber(target)} kcal</small></span></span>
-        <div class="macros">${macros.map(([label, g, share, cls]) => `<div class="macro ${cls}"><span class="macro-top"><span>${label}</span><span class="mono">${g} g</span></span><span class="bar" ${vars({ w: `${share}%` })}><span></span></span></div>`).join('')}<p class="muted small">Barras: % de las calorías del día · ${left > 0 ? `quedan ${formatNumber(left)} kcal` : 'objetivo alcanzado'}</p></div>
-      </section>
-      <section class="card flush" aria-labelledby="meals-title">
-        <div class="card-head padded"><h2 id="meals-title">Diario de comidas</h2><span class="muted">${day.meals.length} registros</span></div>
-        <ul class="meals">${day.meals.map((meal) => {
-          const open = ui.mealOpen === meal.id;
-          return `<li><button type="button" class="meal" data-meal="${meal.id}" aria-expanded="${open}"><span class="mono meal-time">${meal.time}</span><span class="meal-text"><small>${meal.type}</small><strong>${meal.title}</strong></span><span class="mono meal-kcal">${meal.calories}<small>kcal</small></span>${icon('chevron', 16)}</button>${open ? `<dl class="meal-macros"><div><dt>Proteínas</dt><dd class="mono">${meal.protein} g</dd></div><div><dt>Carbohidratos</dt><dd class="mono">${meal.carbs} g</dd></div><div><dt>Grasas</dt><dd class="mono">${meal.fats} g</dd></div></dl>` : ''}</li>`;
-        }).join('')}</ul>
-        <p class="card-foot padded">Tocá una comida para ver sus macronutrientes.</p>
-      </section>
-    </div>
-    ${note('Comidas, valores y objetivos completamente ficticios. Esta demo no ofrece asesoramiento nutricional.')}`;
-}
-
 /* ─────────────────────────── Aprender ─────────────────────────── */
 
 function mazosView(data, ui) {
@@ -322,7 +250,8 @@ function finanzasView(data, ui) {
   const f = financeSummary(data);
   const selected = f.categories.find((c) => c.id === ui.financeCategory) ?? f.categories[0];
   const pacePct = Math.round(f.pace * 100);
-  const max = Math.max(...data.finances.months);
+  const months = [...data.finances.months.slice(0, -1), Math.round(f.spent / 1000)];
+  const max = Math.max(...months);
   return `${pageHead(`Noviembre · día ${data.demoClock.dayOfMonth} de ${data.demoClock.daysInMonth}`, 'Tu dinero, más claro.', '')}
     <div class="money-hero"><p class="hero-number mono">${formatMoney(f.available)}<span> disponibles</span></p><p class="muted">de ${formatMoney(f.budget)} presupuestados · ingreso del mes ${formatMoney(f.income)}</p>
       <div class="seg-control" role="group" aria-label="Mostrar">${[['left', 'Disponible'], ['spent', 'Gastado']].map(([id, label]) => `<button type="button" data-finance-mode="${id}" aria-pressed="${ui.financeMode === id}">${label}</button>`).join('')}</div>
@@ -344,7 +273,11 @@ function finanzasView(data, ui) {
           <dl class="facts three"><div><dt>Presupuesto</dt><dd class="mono">${formatMoney(selected.budget)}</dd></div><div><dt>Gastado</dt><dd class="mono">${formatMoney(selected.spent)}</dd></div><div><dt>Por día</dt><dd class="mono">${formatMoney(selected.perDay)}</dd></div></dl>
         </section>
         <section class="card" aria-labelledby="months-title"><div class="card-head"><h2 id="months-title">Gasto de los últimos 6 meses</h2><span class="muted small">miles de $</span></div>
-          <div class="month-bars a-life" role="img" aria-label="Gasto mensual entre ${Math.min(...data.finances.months)} y ${max} mil pesos">${data.finances.months.map((v, i) => `<span class="${i === data.finances.months.length - 1 ? 'is-today' : ''}"><small class="mono">${v}</small><span ${vars({ h: pct((v / max) * 100) })}></span><small>${data.finances.monthLabels[i]}</small></span>`).join('')}</div>
+          <div class="month-bars a-life" role="img" aria-label="Gasto mensual entre ${Math.min(...months)} y ${max} mil pesos">${months.map((v, i) => `<span class="${i === months.length - 1 ? 'is-today' : ''}"><small class="mono">${v}</small><span ${vars({ h: pct((v / max) * 100) })}></span><small>${data.finances.monthLabels[i]}</small></span>`).join('')}</div>
+          <p class="caption">Noviembre se recalcula con cada gasto que registres.</p>
+        </section>
+        <section class="card" aria-labelledby="mov-title"><div class="card-head"><h2 id="mov-title">Movimientos de esta visita</h2><button type="button" class="link-btn" data-open-capture="expense">Registrar gasto ${icon('arrow', 14)}</button></div>
+          ${data.finances.movements.length ? `<ul class="movements">${data.finances.movements.map((m) => `<li><span><strong>${esc(m.description)}</strong><small>${esc(f.categories.find((c) => c.id === m.categoryId)?.name ?? '')}</small></span><span class="mono">−${formatMoney(m.amount)}</span></li>`).join('')}</ul>` : '<p class="empty-state">Todavía no registraste gastos. Probá con «Gasté 12.500 en el supermercado» desde Registrar.</p>'}
         </section>
       </aside>
     </div>
@@ -380,9 +313,10 @@ function peliculasView(data, ui) {
 
 const VIEWS = {
   hoy: hoyView, tareas: tareasView, proyectos: proyectosView, agenda: agendaView,
-  salud: saludView, gimnasio: gimnasioView, nutricion: nutricionView,
+  salud: saludView, gimnasio: gymView, nutricion: nutritionView,
   mazos: mazosView, ingles: inglesView,
   finanzas: finanzasView, compras: comprasView, peliculas: peliculasView,
+  sistema: (data, ui) => systemView(ui),
 };
 
 /** Barra de sub-módulos del área actual (segmentos en mobile y desktop). */

@@ -2,7 +2,11 @@
  * Persona, proyectos y eventos completamente inventados para un showcase público.
  * Ningún dato se importa desde los mocks personales ni desde las integraciones de Vida 2.0.
  */
+import { EXERCISE_META, FOOD_CATALOG, GYM_HISTORY, NUTRITION_HISTORY } from './src/data/synthetic.js';
+
 export const initialData = Object.freeze({
+  /** Fecha ISO del escenario (martes 17/11/2026). */
+  today: '2026-11-17',
   persona: 'Alex',
   dateLabel: 'MARTES, 17 DE NOVIEMBRE DE 2026',
   focus: 'Preparar la presentación de un producto digital',
@@ -57,17 +61,25 @@ export const initialData = Object.freeze({
       { id: 'plank', name: 'Plancha', muscle: 'Core', sets: '3 × 30 s', weight: 'Peso corporal' },
     ],
     volume: [42, 52, 49, 56, 61, 64],
+    exerciseMeta: EXERCISE_META,
+    history: GYM_HISTORY,
+    /** Series registradas hoy (planificadas marcadas o agregadas por el visitante). */
+    today: [],
   },
   nutrition: {
     targetCalories: 2200,
+    /** Objetivo de energía como rango (no se convierte en un punto medio artificial). */
+    target: { kcalLow: 2000, kcalHigh: 2300, protein: 110, fiber: 30 },
+    catalog: FOOD_CATALOG,
+    history: NUTRITION_HISTORY,
     days: [
-      { label: 'Martes 17', meals: [
+      { label: 'Hoy, martes 17', date: '2026-11-17', closed: false, meals: [
         { id: 'breakfast', time: '08:15', title: 'Tostadas, fruta y yogur', type: 'Desayuno', calories: 460, protein: 21, carbs: 62, fats: 14 },
         { id: 'lunch', time: '13:20', title: 'Bowl de arroz y verduras', type: 'Almuerzo', calories: 680, protein: 35, carbs: 83, fats: 20 },
         { id: 'snack', time: '17:10', title: 'Frutos secos y una manzana', type: 'Merienda', calories: 280, protein: 9, carbs: 31, fats: 14 },
         { id: 'dinner', time: '21:00', title: 'Pasta con salsa de tomate', type: 'Cena', calories: 590, protein: 28, carbs: 76, fats: 18 },
       ] },
-      { label: 'Miércoles 18', meals: [
+      { label: 'Lunes 16', date: '2026-11-16', closed: false, note: 'Registro incompleto: solo 2 comidas cargadas.', meals: [
         { id: 'w-breakfast', time: '08:00', title: 'Avena, banana y semillas', type: 'Desayuno', calories: 480, protein: 19, carbs: 70, fats: 14 },
         { id: 'w-lunch', time: '13:00', title: 'Wrap de pollo y vegetales', type: 'Almuerzo', calories: 630, protein: 38, carbs: 60, fats: 22 },
       ] },
@@ -111,6 +123,8 @@ export const initialData = Object.freeze({
     ],
     months: [780, 810, 760, 930, 845, 886],
     monthLabels: ['Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov'],
+    /** Movimientos registrados durante la visita (vacío al inicio). */
+    movements: [],
   },
   shopping: [
     { id: 'apples', name: 'Manzanas', category: 'Verdulería', amount: '1 kg', checked: false },

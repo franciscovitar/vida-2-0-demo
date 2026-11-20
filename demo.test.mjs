@@ -60,7 +60,7 @@ function mockDom() {
 }
 
 const ui = mockDom();
-await import('./app.js');
+const app = await import('./app.js');
 
 test('las vistas base y la navegación funcionan sin login', () => {
   assert.match(ui.panel.innerHTML, /Buen día, Alex\./);
@@ -339,7 +339,7 @@ test('gimnasio registra series y calcula los kilos levantados', () => {
   assert.match(ui.panel.innerHTML, /2 de 12 series · 350 kg levantados/);
   ui.click({ action: 'reset' });
   ui.click({ tab: 'gimnasio' });
-  assert.doesNotMatch(ui.panel.innerHTML, /aria-pressed="true"/);
+  assert.doesNotMatch(ui.panel.innerHTML, /data-gym-set="[a-z]+-\d" aria-pressed="true"/);
 });
 
 test('finanzas muestra disponible, ritmo del mes y alterna disponible/gastado', () => {
@@ -405,4 +405,108 @@ test('la interfaz respeta la CSP: sin estilos en línea, fuentes propias y sin s
   await readFile(new URL('fonts/OFL-LICENSE.txt', root));
   const logicSource = await readFile(new URL('logic.js', root), 'utf8');
   assert.doesNotMatch(logicSource, /\bfetch\s*\(|localStorage|\bdocument\b|\bwindow\b/);
+});
+
+/* ───────── Etapa 3: captura, flujo vertical y arquitectura explicada ───────── */
+
+test('gimnasio: agregar una serie desde la tarjeta actualiza la sesión, la comparación y se puede deshacer', () => {
+  ui.click({ action: 'reset' });
+  ui.click({ tab: 'gimnasio' });
+  assert.match(ui.panel.innerHTML, /Series hoy<\/dt><dd class="mono">0<small>\/12/);
+  app.__test.submit('set', { kg: '37.5', reps: '10' }, { exercise: 'press' });
+  assert.match(ui.panel.innerHTML, /Series hoy<\/dt><dd class="mono">1<small>\/12/);
+  assert.match(ui.panel.innerHTML, /375<small> kg/);
+  assert.match(ui.panel.innerHTML, /Mejor · \+9,9 % e1RM vs 16 nov/);
+  assert.match(ui.panel.innerHTML, /Récord personal \(e1RM\)/);
+  assert.match(ui.announcement.textContent, /Serie agregada/);
+  app.__test.undo();
+  assert.match(ui.panel.innerHTML, /Series hoy<\/dt><dd class="mono">0<small>\/12/);
+  app.__test.submit('set', { kg: '35.1', reps: '10' }, { exercise: 'press' });
+  assert.match(ui.panel.innerHTML, /Usá incrementos de 0,25 kg/);
+  assert.equal(app.__test.data.gym.today.length, 0);
+});
+
+test('gimnasio: progreso e historial derivan del historial sintético y de lo registrado hoy', () => {
+  ui.click({ action: 'reset' });
+  ui.click({ tab: 'gimnasio' });
+  ui.click({ gymSet: 'press-1' });
+  ui.click({ gymTab: 'progreso' });
+  assert.match(ui.panel.innerHTML, /Fuerza estimada · Press de pecho/);
+  assert.match(ui.panel.innerHTML, /13 sesiones/);
+  ui.click({ gymExercise: 'row' });
+  assert.match(ui.panel.innerHTML, /Fuerza estimada · Remo sentado/);
+  ui.click({ gymTab: 'historial' });
+  assert.match(ui.panel.innerHTML, /Hoy · en curso/);
+  assert.match(ui.panel.innerHTML, /16 nov/);
+});
+
+test('nutrición: agregar y quitar un alimento recalcula energía, macros y cobertura', () => {
+  ui.click({ action: 'reset' });
+  ui.click({ tab: 'nutricion' });
+  assert.match(ui.panel.innerHTML, /Dentro del rango 2\.000–2\.300 kcal/);
+  assert.match(ui.panel.innerHTML, /Fibra <small class="cov is-partial"/);
+  app.__test.submit('food', { foodId: 'almonds', amount: '2', portionId: 'handful', moment: 'Merienda' });
+  assert.match(ui.panel.innerHTML, /2\.357<\/strong><small>kcal/);
+  assert.match(ui.panel.innerHTML, /57 kcal sobre el máximo del rango/);
+  assert.match(ui.panel.innerHTML, /Almendras <small class="muted">2 puñados · 60 g/);
+  const id = app.__test.data.nutrition.days[0].meals.at(-1).id;
+  ui.click({ foodRemove: id });
+  assert.match(ui.panel.innerHTML, /2\.010<\/strong>/);
+  app.__test.submit('food', { foodId: 'almonds', amount: '0', portionId: 'handful', moment: 'Merienda' });
+  assert.match(ui.panel.innerHTML, /La cantidad debe ser mayor que 0/);
+  ui.click({ nutritionTab: 'tendencias' });
+  assert.match(ui.panel.innerHTML, /Días dentro del rango/);
+  ui.click({ nutritionTab: 'catalogo' });
+  assert.match(ui.panel.innerHTML, /Empanada de carne/);
+  assert.match(ui.panel.innerHTML, /sin dato/);
+});
+
+test('captura conversacional: interpretar, revisar, confirmar y ver el impacto en varios módulos', () => {
+  ui.click({ action: 'reset' });
+  ui.click({ openCapture: '' });
+  app.__test.submit('parse', { text: 'Hice press de pecho, 3 series de 10 con 35 kilos. Gasté 12.500 en el supermercado. Comí 2 huevos y un café' });
+  const result = app.__test.ui.capture.result;
+  assert.deepEqual(result.intents.map((i) => i.kind), ['gym.set', 'finance.expense', 'food.entry']);
+  assert.equal(result.unparsed.length, 1);
+  app.__test.submit('confirm', {});
+  assert.match(app.__test.ui.capture.lastApplied, /3 series de Press de pecho · gasto de \$ 12\.500 en Alimentación · Huevo en desayuno/);
+  assert.equal(app.__test.data.gym.today.length, 3);
+  ui.click({ tab: 'finanzas' });
+  assert.match(ui.panel.innerHTML, /\$ 451\.500<span> disponibles/);
+  assert.match(ui.panel.innerHTML, /Supermercado/);
+  ui.click({ tab: 'hoy' });
+  assert.match(ui.panel.innerHTML, /Cuidarme: 1 de 3 hoy/);
+  app.__test.undo();
+  ui.click({ tab: 'finanzas' });
+  assert.match(ui.panel.innerHTML, /\$ 464\.000<span> disponibles/);
+  assert.equal(app.__test.data.gym.today.length, 0);
+});
+
+test('captura: datos faltantes bloquean la confirmación y el formulario crea tareas', () => {
+  ui.click({ action: 'reset' });
+  ui.click({ openCapture: '' });
+  app.__test.submit('parse', { text: 'hice sentadilla' });
+  app.__test.submit('confirm', {});
+  assert.deepEqual(Object.keys(app.__test.ui.capture.errors.i0).sort(), ['kg', 'reps']);
+  assert.equal(app.__test.data.gym.today.length, 0);
+  ui.click({ captureMode: 'form' });
+  ui.click({ captureType: 'task' });
+  app.__test.submit('quick', { title: '<b>Preparar</b> la retro', priority: 'Alta' });
+  ui.click({ tab: 'tareas' });
+  assert.match(ui.panel.innerHTML, /&lt;b&gt;Preparar&lt;\/b&gt; la retro/);
+  assert.doesNotMatch(ui.panel.innerHTML, /<b>Preparar<\/b>/);
+  ui.click({ action: 'reset' });
+  ui.click({ tab: 'tareas' });
+  assert.doesNotMatch(ui.panel.innerHTML, /Preparar<\/b>|la retro/);
+});
+
+test('«Cómo funciona» explica el sistema real y distingue lo que la demo simula', () => {
+  ui.click({ tab: 'sistema' });
+  assert.equal(ui.breadcrumb.textContent, 'Cómo funciona');
+  assert.match(ui.panel.innerHTML, /Chat para operar\. Fuentes canónicas para guardar/);
+  assert.match(ui.panel.innerHTML, /Huawei Band[\s\S]*Health Auto Export[\s\S]*Health Sync/);
+  assert.match(ui.panel.innerHTML, /Notion[\s\S]*Google Sheets[\s\S]*Google Calendar/);
+  ui.click({ systemMode: 'demo' });
+  assert.match(ui.panel.innerHTML, /Intérprete local por reglas/);
+  assert.match(ui.panel.innerHTML, /No hay IA ni red/);
 });
