@@ -2,7 +2,7 @@
 
 [![Calidad de Vida 2.0 Demo](https://github.com/franciscovitar/vida-2-0-demo/actions/workflows/quality.yml/badge.svg)](https://github.com/franciscovitar/vida-2-0-demo/actions/workflows/quality.yml)
 
-**[Abrir demo interactiva](https://vida-2-0-demo-genova.vercel.app/)** · **[Caso de estudio y decisiones técnicas](./docs/CASE_STUDY.md)** · [Sistema original](https://github.com/franciscovitar/vida-2.0)
+**[Abrir demo interactiva](https://vida-2-0-demo-genova.vercel.app/)** · **[Caso de estudio y decisiones técnicas](./docs/CASE_STUDY.md)** · [Caso en el portfolio](https://franvitar.genovasite.com/work/vida-2?lang=es) · [Sistema original](https://github.com/franciscovitar/vida-2.0)
 
 > Diseñada y desarrollada por **Francisco Vitar**. Un sistema para conectar organización, bienestar, aprendizaje y finanzas. La demo es pública, ficticia y no expone las integraciones privadas.
 

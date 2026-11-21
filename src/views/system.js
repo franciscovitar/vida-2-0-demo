@@ -15,7 +15,7 @@ const CAPTURE_REAL = [
   { title: 'Lo contás como te sale', text: 'Texto o audio en un proyecto de ChatGPT con instrucciones propias de cada dominio.', tags: ['ChatGPT Projects'] },
   { title: 'Se interpreta', text: 'El Personal AI System separa intenciones, detecta datos faltantes y delega en Skills de dominio.', tags: ['PAS', 'Gym Intelligence', 'Nutrition Intelligence'] },
   { title: 'Se valida', text: 'Política por operación: qué se aplica directo, qué pide aclaración y qué necesita aprobación.', tags: ['Policy', 'Idempotencia'] },
-  { title: 'Se guarda en su fuente', text: 'Cada dato vive en su autoridad canónica, por conector autorizado.', tags: ['Notion', 'Google Sheets', 'Google Calendar', 'Drive'], tone: 'source' },
+  { title: 'Se registra si está autorizado', text: 'El conector del dominio puede escribir en su fuente canónica según permisos y flags. No todas las integraciones admiten escrituras.', tags: ['Sheets · según operación', 'Notion · lectura web', 'Calendar · lectura web', 'Drive · originales'], tone: 'source' },
   { title: 'Vida lo muestra', text: 'La web lee esas fuentes y compone vistas derivadas. No es una base paralela.', tags: ['Next.js', 'Vistas derivadas'], tone: 'vida' },
 ];
 
@@ -41,12 +41,12 @@ const SOURCES = [
   ['Google Sheets', 'Gimnasio, nutrición, hábitos, salud, sueño, productividad'],
   ['Google Calendar', 'Agenda y bloques de tiempo'],
   ['Google Drive', 'Evidencia pesada u original (exportaciones de salud)'],
-  ['Vida Web', 'Vistas derivadas, interpretación y revisión'],
+  ['Vida Web', 'Vistas derivadas y controles acotados; la interpretación conversacional corresponde a ChatGPT + PAS'],
 ];
 
 const COMPARE = [
   ['Captura', 'ChatGPT + Skills del Personal AI System; Telegram y WhatsApp planificados', 'Formulario e intérprete local por reglas'],
-  ['Almacenamiento', 'Fuente canónica por dominio (Notion, Sheets, Calendar, Drive)', 'Memoria de la pestaña'],
+  ['Almacenamiento', 'Fuentes por dominio (Notion y Sheets; Calendar para consulta, Drive para originales)', 'Memoria de la pestaña'],
   ['Salud', 'Huawei Band → … → Health Sync → Sheets', 'Series sintéticas de 7 días'],
   ['Escrituras', 'Detrás de flags; política, idempotencia, auditoría y rollback', 'Inmediatas, con deshacer local'],
   ['IA', 'Interpreta lenguaje y explica evidencia estructurada', 'No hay IA'],

@@ -2,7 +2,7 @@
 
 **Diseño y desarrollo:** [Francisco Vitar](https://github.com/franciscovitar) · **Tipo:** proyecto personal, producto web e integraciones.
 
-**[Explorar la demo pública](https://vida-2-0-demo-genova.vercel.app/)** · [Ver el código del sistema original](https://github.com/franciscovitar/vida-2.0)
+**[Explorar la demo pública](https://vida-2-0-demo-genova.vercel.app/)** · [Caso de estudio en el portfolio](https://franvitar.genovasite.com/work/vida-2?lang=es) · [Ver el código del sistema original](https://github.com/franciscovitar/vida-2.0)
 
 ## El problema
 
@@ -10,13 +10,14 @@ La información cotidiana suele quedar distribuida entre aplicaciones y fuentes 
 
 ## La propuesta
 
-Vida 2.0 conecta esas áreas sin duplicar las fuentes de verdad. El usuario registra información en una conversación; el Personal AI System la interpreta según el dominio, valida la operación y utiliza un conector autorizado hacia la fuente correspondiente. La aplicación web lee los datos y presenta métricas, evolución, comparaciones y próximos pasos.
+Vida 2.0 conecta esas áreas sin duplicar las fuentes de verdad. La arquitectura de captura documentada contempla que el usuario registre información en una conversación, el Personal AI System la interprete según el dominio y que un conector autorizado escriba **cuando esa operación esté permitida**. La aplicación web lee los datos y presenta métricas, evolución, comparaciones y próximos pasos. El recorrido documentado no equivale a afirmar que todas las rutas estén activas en producción.
 
 ```mermaid
 flowchart TD
-  A["ChatGPT + PAS: captura y reglas de dominio"] --> B["Conectores autorizados y validación"]
-  B --> C["Fuentes canónicas: Notion, Sheets, Calendar, Drive"]
-  C --> D["Vida 2.0: vistas y decisiones"]
+  A["ChatGPT + PAS: captura y reglas de dominio"] --> B["Validación, permisos y conectores"]
+  B --> C["Registro autorizado en fuente del dominio"]
+  C --> D["Vida 2.0: vistas derivadas"]
+  E["Calendar: consulta / Drive: originales"] --> D
 ```
 
 El código del sistema original está separado de esta demostración. No se exponen datos personales, credenciales ni integración con el dispositivo de salud.
@@ -56,6 +57,7 @@ El visitante puede crear, editar, revisar y deshacer cambios. Los módulos recal
 - **Responsive:** verificación manual de las 15 vistas en 390, 820 y 1440 px, sin desbordamiento horizontal en la versión revisada.
 - **Seguridad de demo:** `connect-src 'none'`, datos sintéticos y ninguna cuenta conectada. Esto no equivale a una auditoría integral de seguridad.
 - **Sistema original:** Next.js, React, TypeScript, autenticación, Postgres y fuentes externas. Las capacidades detrás de flags no se presentan como habilitadas en producción.
+- **Permisos concretos:** en la interfaz original Notion y Calendar se consultan en modo lectura; las rutas de escritura adicionales dependen de flags y de controles por operación. Ni esta demo ni este documento certifican una escritura real.
 - **Alcance:** no hay usuarios reales, métricas comerciales, recomendaciones clínicas, IA en el navegador ni datos sincronizados. No se inventan resultados de adopción.
 
 ## Para explorar el código
