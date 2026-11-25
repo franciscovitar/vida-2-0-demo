@@ -2,7 +2,7 @@
 
 [![Calidad de Vida 2.0 Demo](https://github.com/franciscovitar/vida-2-0-demo/actions/workflows/quality.yml/badge.svg)](https://github.com/franciscovitar/vida-2-0-demo/actions/workflows/quality.yml)
 
-**[Abrir demo interactiva](https://vida-2-0-demo-genova.vercel.app/)** · **[Caso de estudio y decisiones técnicas](./docs/CASE_STUDY.md)** · [Caso en el portfolio](https://franvitar.genovasite.com/work/vida-2?lang=es) · [Sistema original](https://github.com/franciscovitar/vida-2.0)
+**[Abrir demo interactiva](https://vida-2-0-demo-genova.vercel.app/)** · **[Caso de estudio y decisiones técnicas](./docs/CASE_STUDY.md)** · [Caso en el portfolio](https://franvitar.genovasite.com/work/vida-2?lang=es)
 
 > Diseñada y desarrollada por **Francisco Vitar**. Un sistema para conectar organización, bienestar, aprendizaje y finanzas. La demo es pública, ficticia y no expone las integraciones privadas.
 
@@ -25,7 +25,7 @@
 
 *Quick English overview:* Interactive showcase of a personal information system. Fifteen connected views, synthetic data, domain calculations, local undo, and a guided walkthrough. The real Next.js/TypeScript system is documented separately; this demo has no connected accounts or AI model.
 
-Demo estática e independiente para visitantes del portfolio de Francisco Vitar. Este repositorio contiene **solo el showcase público**, separado del código y los datos de la aplicación original.
+Demo estática e independiente para visitantes del portfolio de Francisco Vitar. Este repositorio contiene **solo el showcase público**, separado del código y los datos de la aplicación original, cuyo repositorio es privado.
 
 **No es la aplicación personal en producción.** Es una experiencia de producto navegable y aislada, inspirada en Vida 2.0, con una persona y datos completamente ficticios. Su objetivo es que cualquier visitante entienda el concepto en pocos segundos. Es un *showcase interactivo de interfaz*, no una prueba de las integraciones privadas en vivo.
 
@@ -114,6 +114,6 @@ También puede hospedarse en cualquier hosting estático que permita agregar las
 3. Comprobar que no haya solicitudes de red más allá de `index.html`, `styles.css`, `app.js`, `modules.js`, `data.js` y recursos de la plataforma.
 4. Verificar el encabezado CSP en la respuesta desplegada.
 5. Confirmar que no aparezcan datos personales ni referencias a sistemas externos.
-6. Enlazar el código original de Vida 2.0 **separadamente**, sin afirmar que esta demo prueba las integraciones privadas.
+6. Compartir el código público de esta demo y documentar por separado la arquitectura del sistema original privado, sin afirmar que esta demo prueba sus integraciones.
 
 Esta demo **no se activa desde la aplicación real** y no sincroniza ningún contenido con ella. Modificar este repositorio no modifica Vida 2.0 personal.

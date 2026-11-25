@@ -853,3 +853,18 @@ test('etapa 5B: importar extracto de prueba detecta duplicados, se puede deshace
   ui.click({ financeTab: 'import' });
   assert.match(ui.panel.innerHTML, /Confirmar 4 movimientos/);
 });
+
+
+test('la explicación pública enlaza solo evidencia accesible, sin presentar el sistema original como público', async () => {
+  const { systemView } = await import('./src/views/system.js');
+  for (const systemMode of ['real', 'demo']) {
+    const html = systemView({ systemMode });
+    assert.match(html, /El sistema original se mantiene privado/);
+    assert.match(html, /https:\/\/github\.com\/franciscovitar\/vida-2-0-demo/);
+    assert.doesNotMatch(html, /https:\/\/github\.com\/franciscovitar\/vida-2\.0(?:[/"?#]|$)/);
+  }
+  for (const path of ['README.md', 'docs/CASE_STUDY.md']) {
+    const content = await readFile(new URL(path, root), 'utf8');
+    assert.doesNotMatch(content, /https:\/\/github\.com\/franciscovitar\/vida-2\.0(?:[/)?"#]|$)/);
+  }
+});

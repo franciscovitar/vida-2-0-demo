@@ -4,7 +4,6 @@
  */
 import { esc, icon, pageHead } from './ui.js';
 
-const ORIGINAL = 'https://github.com/franciscovitar/vida-2.0';
 const DEMO = 'https://github.com/franciscovitar/vida-2-0-demo';
 
 function flow(steps, label) {
@@ -123,5 +122,5 @@ export function systemView(ui) {
         <div><h3>Esta demo</h3><p>JavaScript modular sin dependencias, reducer con deshacer, dominios puros testeados, CSP estricta (<code>connect-src 'none'</code>, sin estilos en línea) y fuentes autoalojadas.</p></div>
       </div>
     </details>
-    <section class="card links-card"><div><h2>Ver el código</h2><p class="muted">El repositorio original es público; los datos y credenciales nunca forman parte del código.</p></div><div class="links-row"><a class="btn btn-outline" href="${ORIGINAL}" target="_blank" rel="noopener noreferrer">${icon('code', 16)} Vida 2.0 (original)</a><a class="btn btn-outline" href="${DEMO}" target="_blank" rel="noopener noreferrer">${icon('code', 16)} Esta demo</a></div></section>`;
+    <section class="card links-card"><div><h2>Ver el código</h2><p class="muted">El sistema original se mantiene privado. El código de esta demo independiente es público y utiliza datos sintéticos.</p></div><div class="links-row"><a class="btn btn-outline" href="https://franvitar.genovasite.com/work/vida-2?lang=es" target="_blank" rel="noopener noreferrer">${icon('code', 16)} Caso de estudio</a><a class="btn btn-outline" href="${DEMO}" target="_blank" rel="noopener noreferrer">${icon('code', 16)} Esta demo</a></div></section>`;
 }

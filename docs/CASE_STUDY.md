@@ -2,7 +2,7 @@
 
 **Diseño y desarrollo:** [Francisco Vitar](https://github.com/franciscovitar) · **Tipo:** proyecto personal, producto web e integraciones.
 
-**[Explorar la demo pública](https://vida-2-0-demo-genova.vercel.app/)** · [Caso de estudio en el portfolio](https://franvitar.genovasite.com/work/vida-2?lang=es) · [Ver el código del sistema original](https://github.com/franciscovitar/vida-2.0)
+**[Explorar la demo pública](https://vida-2-0-demo-genova.vercel.app/)** · [Caso de estudio en el portfolio](https://franvitar.genovasite.com/work/vida-2?lang=es)
 
 ## El problema
 
@@ -20,7 +20,7 @@ flowchart TD
   E["Calendar: consulta / Drive: originales"] --> D
 ```
 
-El código del sistema original está separado de esta demostración. No se exponen datos personales, credenciales ni integración con el dispositivo de salud.
+El repositorio del sistema original es privado y está separado de esta demostración. El código público de la demo usa datos sintéticos y no conecta cuentas ni dispositivos de salud.
 
 ## Qué muestra la demo
 
